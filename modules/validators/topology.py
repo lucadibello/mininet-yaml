@@ -218,22 +218,31 @@ def validate_hosts(data: dict[str, dict]) -> Tuple[list[Host], bool, str]:
 def validate_network_configuration(
     routers: list[Router], hosts: list[Host]
 ) -> Tuple[bool, str]:
+    # Acquire all IP addresses from the network configuration
     ip_addresses = []
+    masks = []
     for router in routers:
-        [
-            ip_addresses.append(interface.get_ip())
-            for interface in router.get_interfaces()
-        ]
-    test = []
+        ip_addresses.extend(interface.get_ip() for interface in router.get_interfaces())
+        masks.extend(interface.get_mask() for interface in router.get_interfaces())
     for host in hosts:
-        [test.append(interface.get_ip()) for interface in host.get_interfaces()]
+        ip_addresses.extend(interface.get_ip() for interface in host.get_interfaces())
+        masks.extend(interface.get_mask() for interface in host.get_interfaces())
 
-    print(ip_addresses)
-    print(test)
-
+    # Check for duplicate IP addresses
     if len(ip_addresses) != len(set(ip_addresses)):
         return (
             False,
             "There are duplicate IP addresses in the network configuration. Each network interface must have a unique IP address.",
         )
+
+    # Now, for each IP address, check if it is within a valid subnet
+    for ip, mask in zip(ip_addresses, masks):
+        try:
+            ipaddress.IPv4Network(f"{ip}/{mask}", strict=False)
+        except ValueError:
+            return (
+                False,
+                f"The IP address {ip} is not within a valid subnet.",
+            )
+
     return True, ""
