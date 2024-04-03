@@ -16,14 +16,13 @@ def main():
     if log_dir:
         Logger(log_dir)
     Logger().info("Starting the network emulation.")
-
     Logger().info(f"Reading the network topology from the file: {file_path}")
 
     # Validate and decode network topology from YAML file
     topology = decodeTopology(file_path)
 
     Logger().info(
-        f"Network topology successfully loaded. Found {len(topology.get_routers())} routers and {len(topology.get_hosts())} hosts."
+        f"Network topology successfully loaded. Found {len(topology.get_routers())} routers, {len(topology.get_hosts())} hosts and {topology.get_total_links()} unique links."
     )
 
 
