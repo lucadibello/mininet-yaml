@@ -8,6 +8,15 @@ class NetworkInterface:
         self._ip = ip
         self._mask = mask
 
+    def get_name(self):
+        return self._name
+
+    def get_ip(self):
+        return self._ip
+
+    def get_mask(self):
+        return self._mask
+
     def __str__(self):
         return f"Interface(name={self._name}, subnet=({self._ip}/{self._mask}))"
 
@@ -81,7 +90,8 @@ class Host(NetworkElement):
 
     def __init__(self, name: str, interfaces: list[NetworkInterface] = []):
         super().__init__(name)
-        self.set_interfaces(interfaces)
+        for interface in interfaces:
+            self.add_interface(interface)
 
     def __str__(self):
         return f"Host(name={self.get_name()}, interfaces={self.get_interfaces()})"
