@@ -1,3 +1,38 @@
+from modules.util.network import Ipv4Network
+
+
+def _does_link_exist(
+    a: "NetworkElement", b: "NetworkElement"
+) -> tuple[bool, list[tuple["NetworkInterface", "NetworkInterface"]]]:
+    """
+    This function checks if two network elements are linked together in the network topology.
+
+    Parameters:
+    a (NetworkElement): The first network element.
+    b (NetworkElement): The second network element.
+
+    Returns:
+    tuple[bool, list[tuple[NetworkInterface, NetworkInterface]]: A tuple containing a boolean value indicating if the link exists and a list of tuples containing the interfaces that are linked.
+    """
+    linked_interfaces = []
+
+    # For each interface of each network element, create an Ipv4Network object
+    for interface_a in a.get_interfaces():
+        network_a = Ipv4Network(interface_a.get_ip(), interface_a.get_mask())
+
+        for interface_b in b.get_interfaces():
+            network_b = Ipv4Network(interface_b.get_ip(), interface_b.get_mask())
+
+            # Ensure that both networks can communicate with each other
+            if Ipv4Network.can_communicate(network_a, network_b):
+                # If they overlap, it means the interfaces are linked
+                linked_interfaces.append((interface_a, interface_b))
+
+    # If linked_interfaces is not empty, then a link exists
+    link_exists = len(linked_interfaces) > 0
+    return link_exists, linked_interfaces
+
+
 class NetworkInterface:
     """
     This class represents a network interface of a network element.
@@ -48,6 +83,7 @@ class NetworkElement:
     def __init__(self, name: str):
         self._name = name
         self._interfaces: list[NetworkInterface] = []
+        self._links: list[tuple[NetworkElement, NetworkInterface]] = []
 
     def set_interfaces(self, interfaces: list[NetworkInterface]):
         self._interfaces = interfaces
@@ -63,6 +99,12 @@ class NetworkElement:
 
     def get_name(self):
         return self._name
+
+    def add_link(self, link: tuple["NetworkElement", NetworkInterface]):
+        self._links.append(link)
+
+    def get_links(self):
+        return self._links
 
 
 class Router(NetworkElement):
@@ -109,6 +151,26 @@ class NetworkTopology:
         self._routers = routers
         self._hosts = hosts
 
+        # TODO: We must ensure that each host is connected to only one router!
+
+        # Find all the links between routers and hosts
+        total_links = 0
+        for router in self._routers:
+            for host in self._hosts:
+                # Compute all possible links between the router and the host
+                found, interfaces = _does_link_exist(router, host)
+                if not found:
+                    continue
+
+                # Add the link between the router and the host
+                for source_interface, destination_interface in interfaces:
+                    total_links += 1
+                    router.add_link((host, source_interface))
+                    host.add_link((router, destination_interface))
+
+        # Save total number of unique links
+        self._total_links = total_links
+
     def __str__(self):
         return f"NetworkTopology(routers={self._routers}, hosts={self._hosts})"
 
@@ -120,3 +182,6 @@ class NetworkTopology:
 
     def get_hosts(self):
         return self._hosts
+
+    def get_total_links(self):
+        return self._total_links
