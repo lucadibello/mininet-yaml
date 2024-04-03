@@ -1,5 +1,6 @@
 import argparse
 from typing import Any
+import os
 
 
 class ValidateDirectoryPath(argparse.Action):
@@ -19,13 +20,12 @@ class ValidateDirectoryPath(argparse.Action):
         if not path:
             raise ValueError("The directory path cannot be empty.")
         # Check if directory exists
-        try:
-            with open(path, "r"):
-                pass
-        except FileNotFoundError:
-            raise ValueError("The directory does not exist.")
-        except PermissionError:
-            raise ValueError("The directory is not writable.")
+        if not os.path.isdir(path):
+            # Try to create the directory
+            try:
+                os.makedirs(path)
+            except PermissionError:
+                raise ValueError("The directory does not exist and cannot be created.")
 
         # Set the path to the directory
         setattr(namespace, self.dest, path)
