@@ -151,7 +151,7 @@ def validate_routers(data: dict[str, dict]) -> Tuple[list[Router], bool, str]:
         # Add router to list
         routers.append(router)
 
-    # Todo!
+    # Return parsed routers to the caller
     return routers, True, ""
 
 
@@ -193,23 +193,47 @@ def validate_hosts(data: dict[str, dict]) -> Tuple[list[Host], bool, str]:
             # Validate the interface name
             status, msg = _validate_interface_name(interface_name)
             if not status:
-                return [], False, f"{msg} (router {name})"
+                return [], False, f"{msg} (host {name})"
 
             # Validate fields
             status, msg = _validate_network_interface_details(interface_details)
             if not status:
-                return [], False, f"{msg} (router {name}, interface {interface_name})"
+                return [], False, f"{msg} (host {name}, interface {interface_name})"
 
             # Convert to a RouterNetworkINterface object
             interface = NetworkInterface(
                 interface_name, interface_details["address"], interface_details["mask"]
             )
-
             # Append interface to router
             host.add_interface(interface)
 
-        # Add router to list
+        # Append host to hosts list
+        print(hex(id(host)), host)
         hosts.append(host)
 
-    # Return parsed hosts
+    # Return parsed hosts to the caller
     return hosts, True, ""
+
+
+def validate_network_configuration(
+    routers: list[Router], hosts: list[Host]
+) -> Tuple[bool, str]:
+    ip_addresses = []
+    for router in routers:
+        [
+            ip_addresses.append(interface.get_ip())
+            for interface in router.get_interfaces()
+        ]
+    test = []
+    for host in hosts:
+        [test.append(interface.get_ip()) for interface in host.get_interfaces()]
+
+    print(ip_addresses)
+    print(test)
+
+    if len(ip_addresses) != len(set(ip_addresses)):
+        return (
+            False,
+            "There are duplicate IP addresses in the network configuration. Each network interface must have a unique IP address.",
+        )
+    return True, ""
