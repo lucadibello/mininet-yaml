@@ -208,7 +208,6 @@ def validate_hosts(data: dict[str, dict]) -> Tuple[list[Host], bool, str]:
             host.add_interface(interface)
 
         # Append host to hosts list
-        print(hex(id(host)), host)
         hosts.append(host)
 
     # Return parsed hosts to the caller
