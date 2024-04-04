@@ -1,5 +1,5 @@
 from typing import Sequence, cast
-from modules.models.network_elements import NetworkElement, Host, Link, Router, RouterNetworkInterface
+from modules.models.network_elements import Link, NetworkElement, Host, Router, RouterNetworkInterface
 from modules.util.logger import Logger
 from modules.util.network import does_link_exist
 
@@ -41,14 +41,14 @@ class NetworkTopology:
 
     @staticmethod
     def _create_links(
-            set_a: Sequence["NetworkElement"], set_b: Sequence["NetworkElement"]
+        set_a: Sequence["NetworkElement"], set_b: Sequence["NetworkElement"]
     ) -> int:
         # Find all the links between routers and hosts
         total_links = 0
         for a in set_a:
             for b in set_b:
                 # If for any reason the two network elements are the same, skip as they cannot be linked
-                if a.get_name() == b.get_name():
+                if a.get_name() == b.get_name():  # Skip if the two network elements are the same
                     continue
 
                 # Compute all possible links between the two network elements
@@ -60,19 +60,22 @@ class NetworkTopology:
                 for source_interface, destination_interface in interfaces:
                     total_links += 1
 
-                    # Create link between the two network elements
-                    link = Link(
-                        source=Link.Endpoint(
-                            entity=a, interface=source_interface),
-                        destination=Link.Endpoint(
-                            entity=b, interface=destination_interface
-                        ),
-                    )
+                    # If the cost between the two network elements is not the same, raise a warning
+                    if isinstance(source_interface, RouterNetworkInterface) and isinstance(destination_interface, RouterNetworkInterface):
+                        if source_interface.get_cost() != destination_interface.get_cost():
+                            Logger().warning(
+                                f"Found cost discrepancy between {a.get_name()} and {b.get_name()}. The link between {source_interface.get_name()} and {destination_interface.get_name()} has different costs: {source_interface.get_cost()} vs {destination_interface.get_cost()}. "
+                                f"Overriding cost to {source_interface.get_cost()}."
+                            )
+                            destination_interface.set_cost(
+                                source_interface.get_cost())
 
                     # Add the link to the source network element
-                    a.add_link(link)
+                    a.add_link(Link(source_interface, Link.Endpoint(
+                        entity=b, interface=destination_interface)))
                     # Add the link to the destination network element
-                    b.add_link(link)
+                    b.add_link(Link(destination_interface, Link.Endpoint(
+                        entity=a, interface=source_interface)))
 
         # Return total amount of unique links
         return total_links
@@ -102,7 +105,7 @@ class NetworkTopology:
         adj_matrix: list[list[list[int]]] = [
             [list() for _ in range(tot_routers)] for _ in range(tot_routers)]
 
-        def get_index(router):
+        def get_index(router: Router):
             return router_index[router.get_name()]
 
         def create_edge(source: Link.Endpoint, destination: Link.Endpoint, cost: int,
@@ -128,28 +131,31 @@ class NetworkTopology:
             graph += f"\t{router.get_name()} [shape=circle, color=blue];\n"
 
         # For each router, create an edge to each destination router
-        for router in self._routers:
-            for link in router.get_links():
+        for source in self._routers:
+            for link in source.get_links():
                 # Unpack values
-                source = link.get_source()
-                destination = link.get_destination()
+                source_interface = link._interface
+                destination = link._endpoint
 
-                # Ensure both ends are routers
-                if (not isinstance(source.entity, Router) or not isinstance(destination.entity, Router)):
+                # Ensure both ends are router
+                if not isinstance(destination.entity, Router):
                     continue
 
                 # Register the edge in the adjacency matrix
-                source_index = get_index(source.entity)
+                source_index = get_index(source)
                 destination_index = get_index(destination.entity)
 
                 # Cast to RouterNetworkInterface to access cost
                 link_cost = cast(RouterNetworkInterface,
-                                 source.interface).get_cost()
+                                 source_interface).get_cost()
 
                 # Check if the edge should be added to the graph
                 if (len(adj_matrix[source_index][destination_index]) == 0 or link_cost not in adj_matrix[source_index][destination_index]):
                     # Add the edge to the graph
-                    graph += create_edge(source, destination, link_cost)
+                    graph += create_edge(
+                        Link.Endpoint(source, source_interface),
+                        destination, link_cost
+                    )
                     # Append the edge to the adjacency matrix (undirected graph)
                     adj_matrix[source_index][destination_index].append(
                         link_cost)
@@ -157,7 +163,7 @@ class NetworkTopology:
                         link_cost)
                 else:
                     Logger().debug(
-                        f"Edge between {source.entity.get_name()} and {destination.entity.get_name()} already exists."
+                        f"Edge between {source.get_name()} and {destination.entity.get_name()} already exists."
                     )
 
         graph += "}"
