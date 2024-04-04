@@ -1,5 +1,5 @@
 from typing import Sequence, cast
-from modules.models.network_elements import NetworkElement, Host, Link, NetworkInterface, Router, RouterNetworkInterface
+from modules.models.network_elements import NetworkElement, Host, Link, Router, RouterNetworkInterface
 from modules.util.logger import Logger
 from modules.util.network import does_link_exist
 
