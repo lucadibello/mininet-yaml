@@ -261,6 +261,10 @@ class NetworkTopology:
 		"""
 		graph = "graph network {\n"
 
+		# Increase node + rank separation
+		graph += "\tnodesep=1.0;\n" # Needed to enhance visibility
+		graph += "\tranksep=1.0;\n" # Needed to avoid overlapping edges
+
 		# Total number of routers
 		tot_routers = len(self._routers)
 
@@ -278,11 +282,35 @@ class NetworkTopology:
 				print(row)
 	
 		def get_index(router):
-			return router_index[router.get_name()]	
+			return router_index[router.get_name()]    
+
+		def create_edge(source: Link.Endpoint, destination: Link.Endpoint, cost: int,
+				label_distance: float = .5, head_label_distance: float = 1, tail_label_distance: float = .5) -> str:
+			return (
+				f'\t{source.entity.get_name()} -- {destination.entity.get_name()} '
+				f'[label="{cost}", '
+				# f'headlabel="{source.interface.get_name()}", taillabel="{destination.interface.get_name()}", '
+				'fontsize=8, '
+				f'labeldistance={label_distance}, '
+				f'headlabeldistance={head_label_distance}, '
+				f'taillabeldistance={tail_label_distance}, '
+				f'headlabeleangle=45, taillabelangle=45, '
+				f'headlabel=" {source.interface.get_name()}", taillabel=" {destination.interface.get_name()}", '
+	   			# f'xlabel="{source.interface.get_name() + "-" + destination.interface.get_name()}" '
+				f'headlabeldistance={head_label_distance}, '
+				f'taillabeldistance={tail_label_distance} '
+				'style="solid", '
+				'color=black, '
+				'penwidth=1, '
+				'fontcolor=black, '
+				'fontname="Arial", '
+	   			'fontsize=8'
+				'];\n'
+			)
 
 		# Created nodes for each router
 		for router in self._routers:
-			graph += f"\t{router.get_name()} [shape=circle];\n"
+			graph += f"\t{router.get_name()} [shape=circle, color=blue];\n"
 
 		# For each router, create an edge to each destination router
 		for router in self._routers:
@@ -300,32 +328,19 @@ class NetworkTopology:
 				destination_index = get_index(destination.entity)
 
 				# Cast to RouterNetworkInterface to access cost
-				source_interface = cast(RouterNetworkInterface, source.interface)
-			
-				if (len(adj_matrix[source_index][destination_index]) == 0):
-					# Add the edge to the graph
-					graph += f'\t{source.entity.get_name()} -- {destination.entity.get_name()} [label="{source_interface.get_cost()}"];\n'
-					# Append the edge to the adjacency matrix (undirected graph)
-					adj_matrix[source_index][destination_index].append(source_interface.get_cost())
-					adj_matrix[destination_index][source_index].append(source_interface.get_cost())
-				else:
-					# Check if an edge with same cost already exists between the routers
-					found_source = source_interface.get_cost() in adj_matrix[source_index][destination_index]
-					found_destination = source_interface.get_cost() in adj_matrix[destination_index][source_index]
-					
-					if not found_source and not found_destination:
-						# Append the edge to the graph
-						graph += f'\t{source.entity.get_name()} -- {destination.entity.get_name()} [label="{source_interface.get_cost()}"];\n'
-						# Save the edge in the adjacency matrix (undirected graph)
-						adj_matrix[source_index][destination_index].append(source_interface.get_cost())
-						adj_matrix[destination_index][source_index].append(source_interface.get_cost())
-					elif not found_source or not found_destination:
-						Logger().warning(
-							f"Found duplicate link between {source.entity.get_name()} and {destination.entity.get_name()} with same cost. skipping..."
-						)
+				link_cost = cast(RouterNetworkInterface, source.interface).get_cost()
 
-				print(f"Adjacency matrix after adding edge between {source.entity.get_name()} and {destination.entity.get_name()}")
-				_print_matrix(adj_matrix)
+			 	# Check if the edge should be added to the graph
+				if (len(adj_matrix[source_index][destination_index]) == 0 or link_cost not in adj_matrix[source_index][destination_index]):
+					# Add the edge to the graph
+					graph += create_edge(source, destination, link_cost)
+					# Append the edge to the adjacency matrix (undirected graph)
+					adj_matrix[source_index][destination_index].append(link_cost)
+					adj_matrix[destination_index][source_index].append(link_cost)
+				else:
+					Logger().debug(
+						f"Edge between {source.entity.get_name()} and {destination.entity.get_name()} already exists."
+					)
 
 		graph += "}"
 		return graph
