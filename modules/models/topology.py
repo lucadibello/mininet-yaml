@@ -64,7 +64,7 @@ class NetworkTopology:
                     if isinstance(source_interface, RouterNetworkInterface) and isinstance(destination_interface, RouterNetworkInterface):
                         if source_interface.get_cost() != destination_interface.get_cost():
                             Logger().warning(
-                                f"Found cost discrepancy between {a.get_name()} and {b.get_name()}. The link between {source_interface.get_name()} and {destination_interface.get_name()} has different costs: {source_interface.get_cost()} vs {destination_interface.get_cost()}. "
+                                f"Found cost discrepancy between {a.get_name()} (inet: {source_interface.get_name()}, cost {source_interface.get_cost()}) and {b.get_name()} (inet: {destination_interface.get_name()}, cost: {destination_interface.get_cost()}). "
                                 f"Overriding cost to {source_interface.get_cost()}."
                             )
                             destination_interface.set_cost(
@@ -163,7 +163,8 @@ class NetworkTopology:
                         link_cost)
                 else:
                     Logger().debug(
-                        f"Edge between {source.get_name()} and {destination.entity.get_name()} already exists."
+                        f"Edge between {source.get_name()} and {destination.entity.get_name()} already exists. "
+                        "Skipping."
                     )
 
         graph += "}"
