@@ -25,3 +25,7 @@ sudo pacman -S mininet
 ```bash
 brew install mininet
 ```
+
+### Building from source / other systems
+
+You can find relevant instructions on the [official Mininet website](http://mininet.org/download/).
