@@ -8,6 +8,11 @@
   },
   "features": {
     "ghcr.io/devcontainers-contrib/features/zsh-plugins:0": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-python.autopep8", "ms-python.vscode-pylance"]
+    }
   }
 
   // Features to add to the dev container. More info: https://containers.dev/features.
