@@ -277,34 +277,24 @@ class NetworkTopology:
 		# 3D adjacency matrix to store the edges between routers, and cost of the link between them
 		adj_matrix: list[list[list[int]]] = [[list() for _ in range(tot_routers)] for _ in range(tot_routers)]
 
-		def _print_matrix(matrix):
-			for row in matrix:
-				print(row)
-	
 		def get_index(router):
 			return router_index[router.get_name()]    
 
 		def create_edge(source: Link.Endpoint, destination: Link.Endpoint, cost: int,
-				label_distance: float = .5, head_label_distance: float = 1, tail_label_distance: float = .5) -> str:
+				label_distance: float = .5) -> str:
 			return (
 				f'\t{source.entity.get_name()} -- {destination.entity.get_name()} '
-				f'[label="{cost}", '
-				# f'headlabel="{source.interface.get_name()}", taillabel="{destination.interface.get_name()}", '
-				'fontsize=8, '
-				f'labeldistance={label_distance}, '
-				f'headlabeldistance={head_label_distance}, '
-				f'taillabeldistance={tail_label_distance}, '
-				f'headlabeleangle=45, taillabelangle=45, '
-				f'headlabel=" {source.interface.get_name()}", taillabel=" {destination.interface.get_name()}", '
-	   			# f'xlabel="{source.interface.get_name() + "-" + destination.interface.get_name()}" '
-				f'headlabeldistance={head_label_distance}, '
-				f'taillabeldistance={tail_label_distance} '
-				'style="solid", '
-				'color=black, '
-				'penwidth=1, '
-				'fontcolor=black, '
-				'fontname="Arial", '
-	   			'fontsize=8'
+				'[' 
+                f'label="{cost}", '
+				'\n\t\tfontsize=8, '
+				f'\n\t\tlabeldistance={label_distance}, '
+				f'\n\t\theadlabel=" {source.interface.get_name()}", taillabel=" {destination.interface.get_name()}", '
+				'\n\t\tstyle="solid", '
+				'\n\t\tcolor=black, '
+				'\n\t\tpenwidth=1, '
+				'\n\t\tfontcolor=black, '
+				'\n\t\tfontname="Arial", '
+	   			'\n\t\tfontsize=8'
 				'];\n'
 			)
 
