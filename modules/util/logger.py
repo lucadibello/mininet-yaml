@@ -1,4 +1,5 @@
 from datetime import datetime
+from doctest import debug
 import logging
 import os
 
@@ -10,12 +11,17 @@ class Logger(metaclass=Singleton):
     Sigleton class that creates a logger object that logs to a file and the console.
     """
 
-    def __init__(self, dir: str = "log"):
+    def __init__(self, dir: str = "log", debug: bool = False):
         if not isinstance(dir, str):
             raise TypeError("the directory must be a string.")
 
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.DEBUG)  # Set the log level to DEBUG
+        
+        # If debug mode, set the logger to debug (by default is info)
+        if debug:
+            self.logger.setLevel(logging.DEBUG)
+        else:
+            self.logger.setLevel(logging.INFO)
 
         # Generate a filename using basename+timestamp
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
