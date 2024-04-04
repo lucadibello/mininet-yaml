@@ -32,7 +32,7 @@ def main():
 	if must_draw:
 		Logger().debug("Drawing the network topology...")
 		graph = topology.draw()
-		Logger().info("Topology graph created correctly. Output is displayed below.")
+		Logger().info("Topology graph generated correctly. Output is displayed below.")
 		# Print the graph to the console
 		print(graph)
 	else:
