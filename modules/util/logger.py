@@ -11,12 +11,12 @@ class Logger(metaclass=Singleton):
     Sigleton class that creates a logger object that logs to a file and the console.
     """
 
-    def __init__(self, dir: str = "log", debug: bool = False):
+    def __init__(self, dir: str = "log", debug: bool = False, is_silent: bool = False):
         if not isinstance(dir, str):
             raise TypeError("the directory must be a string.")
 
         self.logger = logging.getLogger(__name__)
-        
+
         # If debug mode, set the logger to debug (by default is info)
         if debug:
             self.logger.setLevel(logging.DEBUG)
@@ -36,7 +36,12 @@ class Logger(metaclass=Singleton):
 
         # Create a console handler which logs messages to the console
         ch = logging.StreamHandler()
-        ch.setLevel(logging.DEBUG)
+
+        # Set the console handler level based on the silent flag
+        if is_silent:
+            ch.setLevel(logging.ERROR)
+        else:
+            ch.setLevel(logging.DEBUG)
 
         # Create a formatter and set the formatter for the handlers
         formatter = logging.Formatter(
