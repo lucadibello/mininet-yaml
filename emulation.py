@@ -21,22 +21,25 @@ def main():
     Logger().debug(f"Reading the network topology from the file: {file_path}")
 
     # Validate and decode network topology from YAML file
-    topology = decodeTopology(file_path)
-    Logger().info(
-        f"Network topology loaded. Found {len(topology.get_routers())} routers, {len(topology.get_hosts())} hosts and {topology.get_total_links()} unique links."
-    )
+    try:
+        topology = decodeTopology(file_path)
+        Logger().info(
+            f"Network topology loaded. Found {len(topology.get_routers())} routers, {len(topology.get_hosts())} hosts and {topology.get_total_links()} unique links."
+        )
 
-    # Now, handle what the user wants to do with the network topology
-    if must_draw:
-        Logger().debug("Drawing the network topology...")
-        graph = topology.draw()
-        Logger().info("Topology graph generated correctly. Output is displayed below.")
-        # Print the graph to the console
-        print(graph)
-    else:
-        Logger().debug("Creating virtual network...")
-        raise NotImplementedError(
-            "The network emulation is not implemented yet.")
+        # Now, handle what the user wants to do with the network topology
+        if must_draw:
+            Logger().debug("Drawing the network topology...")
+            graph = topology.draw()
+            Logger().info("Topology graph generated correctly. Output is displayed below.")
+            # Print the graph to the console
+            print(graph)
+        else:
+            Logger().debug("Creating virtual network...")
+            raise NotImplementedError(
+                "The network emulation is not implemented yet.")
+    except ValueError as e:
+        Logger().fatal(str(e))
 
 
 if __name__ == "__main__":

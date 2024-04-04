@@ -27,34 +27,37 @@ class Ipv4Network:
         This method checks if two IPv4 addresses can communicate with each other.
         """
         return a.network_address() == b.network_address()\
-            
+
+
+
 def does_link_exist(
-	a: NetworkElement, b: NetworkElement
+        a: NetworkElement, b: NetworkElement
 ) -> tuple[bool, list[tuple[NetworkInterface, NetworkInterface]]]:
-	"""
-	This function checks if two network elements are linked together in the network topology.
+    """
+    This function checks if two network elements are linked together in the network topology.
 
-	Parameters:
-	a (NetworkElement): The first network element.
-	b (NetworkElement): The second network element.
+    Parameters:
+    a (NetworkElement): The first network element.
+    b (NetworkElement): The second network element.
 
-	Returns:
-	tuple[bool, list[tuple[NetworkInterface, NetworkInterface]]: A tuple containing a boolean value indicating if the link exists and a list of tuples containing the interfaces that are linked.
-	"""
-	linked_interfaces = []
+    Returns:
+    tuple[bool, list[tuple[NetworkInterface, NetworkInterface]]: A tuple containing a boolean value indicating if the link exists and a list of tuples containing the interfaces that are linked.
+    """
+    linked_interfaces = []
 
-	# For each interface of each network element, create an Ipv4Network object
-	for interface_a in a.get_interfaces():
-		network_a = Ipv4Network(interface_a.get_ip(), interface_a.get_mask())
+    # For each interface of each network element, create an Ipv4Network object
+    for interface_a in a.get_interfaces():
+        network_a = Ipv4Network(interface_a.get_ip(), interface_a.get_mask())
 
-		for interface_b in b.get_interfaces():
-			network_b = Ipv4Network(interface_b.get_ip(), interface_b.get_mask())
+        for interface_b in b.get_interfaces():
+            network_b = Ipv4Network(
+                interface_b.get_ip(), interface_b.get_mask())
 
-			# Ensure that both networks can communicate with each other
-			if Ipv4Network.can_communicate(network_a, network_b):
-				# If they overlap, it means the interfaces are linked
-				linked_interfaces.append((interface_a, interface_b))
+            # Ensure that both networks can communicate with each other
+            if Ipv4Network.can_communicate(network_a, network_b):
+                # If they overlap, it means the interfaces are linked
+                linked_interfaces.append((interface_a, interface_b))
 
-	# If linked_interfaces is not empty, then a link exists
-	link_exists = len(linked_interfaces) > 0
-	return link_exists, linked_interfaces
+    # If linked_interfaces is not empty, then a link exists
+    link_exists = len(linked_interfaces) > 0
+    return link_exists, linked_interfaces

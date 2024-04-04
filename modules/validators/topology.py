@@ -68,7 +68,7 @@ def validate_configuration_structure(data: dict[str, dict]) -> Tuple[bool, str]:
         return False, "Input data should be a non-empty dictionary."
     for field in _FIELDS:
         if (
-            not data[field]
+            field not in data
             or not isinstance(data[field], dict)
             or len(data[field].keys()) == 0
         ):

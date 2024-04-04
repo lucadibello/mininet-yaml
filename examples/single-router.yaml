@@ -1,0 +1,24 @@
+routers:
+  r1:
+    eth0:
+      address: 192.168.0.1
+      mask: 255.255.255.252
+      cost: 5
+    eth2:
+      address: 192.168.0.5
+      mask: 255.255.255.252
+  r2:
+    eth0:
+      address: 192.168.0.2
+      mask: 255.255.255.252
+      cost: 2
+
+hosts:
+  h1:
+    eth0:
+      address: 10.0.3.1
+      mask: 255.255.255.0
+  h2:
+    eth0:
+      address: 192.168.0.3
+      mask: 255.255.255.252
