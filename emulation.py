@@ -20,10 +20,19 @@ def main():
 
     # Validate and decode network topology from YAML file
     topology = decodeTopology(file_path)
-
     Logger().info(
         f"Network topology successfully loaded. Found {len(topology.get_routers())} routers, {len(topology.get_hosts())} hosts and {topology.get_total_links()} unique links."
     )
+
+    # Now, handle what the user wants to do with the network topology
+    if must_draw:
+        Logger().info("Drawing the network topology...")
+        graph = topology.draw()
+        # Print the graph to the console
+        print(graph)
+    else:
+        Logger().info("Creating virtual network...")
+        raise NotImplementedError("The network emulation is not implemented yet.")
 
 
 if __name__ == "__main__":
