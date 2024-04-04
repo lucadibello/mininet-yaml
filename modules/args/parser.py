@@ -29,6 +29,14 @@ class ArgParser:
             action=ValidateDirectoryPath,  # Custom validator that checks if the directory exists and is writable
             required=False,
         )
+        # Add debug flag
+        self._parser.add_argument(
+            "-v",
+            "--verbose",
+            help="increase output verbosity",
+            action="store_true",
+            required=False,
+        )
 
     def parse(self):
         try:
