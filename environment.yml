@@ -1,0 +1,4 @@
+name: mininet-yaml
+channels:
+  - defaults
+prefix: /opt/conda/envs/mininet-yaml
