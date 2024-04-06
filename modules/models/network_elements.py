@@ -17,6 +17,9 @@ class NetworkInterface:
     def get_mask(self):
         return self._mask
 
+    def get_prefix_length(self):
+        return sum([bin(int(x)).count('1') for x in self._mask.split('.')])
+
     def __str__(self):
         return f"Interface(name={self._name}, subnet=({self._ip}/{self._mask}))"
 

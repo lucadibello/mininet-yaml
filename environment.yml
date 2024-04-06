@@ -1,4 +1,24 @@
 name: mininet-yaml
 channels:
   - defaults
+dependencies:
+  - bzip2=1.0.8
+  - ca-certificates=2024.3.11
+  - expat=2.5.0
+  - libffi=3.4.4
+  - libuuid=1.41.5
+  - ncurses=6.4
+  - openssl=3.0.13
+  - pip=23.3.1
+  - python=3.12.2
+  - pyyaml=6.0.1
+  - readline=8.2
+  - setuptools=68.2.2
+  - sqlite=3.41.2
+  - tk=8.6.12
+  - tzdata=2024a
+  - wheel=0.41.2
+  - xz=5.4.6
+  - yaml=0.2.5
+  - zlib=1.2.13
 prefix: /opt/conda/envs/mininet-yaml

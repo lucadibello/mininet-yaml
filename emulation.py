@@ -1,6 +1,7 @@
 from modules.args.parser import ArgParser
 from modules.yaml.decoder import decodeTopology
 from modules.util.logger import Logger
+from modules.virtualization.network import run_virtual_topology
 
 
 def main():
@@ -36,8 +37,9 @@ def main():
             print(graph)
         else:
             Logger().debug("Creating virtual network...")
-            raise NotImplementedError(
-                "The network emulation is not implemented yet.")
+            # Create the virtual network
+            run_virtual_topology(topology)
+
     except ValueError as e:
         Logger().fatal(str(e))
 
