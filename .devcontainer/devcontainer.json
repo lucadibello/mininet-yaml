@@ -6,7 +6,7 @@
     "context": "..",
     "dockerfile": "Dockerfile"
   },
-  "runArgs": ["--privileged", "-e DISPLAY", "--network=host"],
+  "runArgs": ["--privileged", "-e DISPLAY", "--network=host", "--cap-add=NET_ADMIN", "--cap-add=SYS_MODULE", "--volume=/lib/modules:/lib/modules"],
   "features": {
     "ghcr.io/devcontainers-contrib/features/zsh-plugins:0": {}
   },

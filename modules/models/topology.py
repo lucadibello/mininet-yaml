@@ -41,7 +41,7 @@ class NetworkTopology:
 
     @staticmethod
     def _create_links(
-        set_a: Sequence["NetworkElement"], set_b: Sequence["NetworkElement"]
+            set_a: Sequence["NetworkElement"], set_b: Sequence["NetworkElement"]
     ) -> int:
         # Find all the links between routers and hosts
         total_links = 0
@@ -70,12 +70,17 @@ class NetworkTopology:
                             destination_interface.set_cost(
                                 source_interface.get_cost())
 
-                    # Add the link to the source network element
-                    a.add_link(Link(source_interface, Link.Endpoint(
-                        entity=b, interface=destination_interface)))
-                    # Add the link to the destination network element
-                    b.add_link(Link(destination_interface, Link.Endpoint(
-                        entity=a, interface=source_interface)))
+                    # Create links
+                    source_to_destination = Link(source_interface, Link.Endpoint(
+                        entity=b, interface=destination_interface))
+                    destination_to_source = Link(destination_interface, Link.Endpoint(
+                        entity=a, interface=source_interface))
+
+                    # Add the links to the network elements if they do not exist
+                    if not a.has_link(source_to_destination):
+                        a.add_link(source_to_destination)
+                    if not b.has_link(destination_to_source):
+                        b.add_link(destination_to_source)
 
         # Return total amount of unique links
         return total_links

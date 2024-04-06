@@ -4,7 +4,7 @@ COPY ./environment.yml /tmp/environment.yml
 
 # install additional OS packages
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends mininet
+    && apt-get -y install --no-install-recommends mininet iputils-ping iproute2 net-tools iperf3 \
 
 
 # Create environment from file

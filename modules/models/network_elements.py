@@ -20,6 +20,11 @@ class NetworkInterface:
     def get_prefix_length(self):
         return sum([bin(int(x)).count('1') for x in self._mask.split('.')])
 
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, NetworkInterface):
+            return False
+        return self._name == value._name and self._ip == value._ip and self._mask == value._mask
+
     def __str__(self):
         return f"Interface(name={self._name}, subnet=({self._ip}/{self._mask}))"
 
@@ -42,6 +47,11 @@ class RouterNetworkInterface(NetworkInterface):
     def __repr__(self):
         return self.__str__()
 
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, RouterNetworkInterface):
+            return False
+        return super().__eq__(value) and self._cost == value._cost
+
     def get_cost(self):
         return self._cost
 
@@ -60,6 +70,11 @@ class Link():
             self._entity = entity
             self._interface = interface
 
+        def __eq__(self, value: object) -> bool:
+            if not isinstance(value, Link.Endpoint):
+                return False
+            return self.entity == value.entity and self.interface == value.interface
+
         @property
         def entity(self):
             return self._entity
@@ -71,6 +86,11 @@ class Link():
     def __init__(self, source_interface: NetworkInterface, destination: Endpoint):
         self._interface = source_interface
         self._endpoint = destination
+
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, Link):
+            return False
+        return self.interface == value.interface and self.endpoint == value.endpoint
 
     @property
     def interface(self):
@@ -105,6 +125,12 @@ class NetworkElement:
 
     def get_name(self):
         return self._name
+
+    def has_link(self, link: Link):
+        for l in self._links:
+            if l.interface == link.interface and l.endpoint == link.endpoint:
+                return True
+        return False
 
     def add_link(self, link: Link):
         self._links.append(link)

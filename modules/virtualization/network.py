@@ -6,6 +6,7 @@ from mininet.net import Mininet
 from mininet.node import Node
 from mininet.topo import Topo
 from mininet.cli import CLI
+from mininet.clean import cleanup
 
 from modules.util.logger import Logger
 
@@ -28,7 +29,7 @@ class VirtualNetworkTopology(Topo):
         Creates the nodes in the virtual network.
 
         Args:
-                elements (list[NetworkElement]): The network elements to create.
+                        elements (list[NetworkElement]): The network elements to create.
         """
         for element in elements:
             virt_element = self.addHost(
@@ -43,7 +44,7 @@ class VirtualNetworkTopology(Topo):
         Some parts are inspired by the USI Mininet tutorial: https://www.inf.usi.ch/faculty/carzaniga/edu/adv-ntw/mininet.html
 
         Args:
-                network (NetworkTopology): The network topology to virtualize.
+                        network (NetworkTopology): The network topology to virtualize.
         """
 
         Logger().debug("Building the virtual network topology...")
@@ -64,20 +65,39 @@ class VirtualNetworkTopology(Topo):
             network_elements[element] = virt_element
 
         # Create links between network elements
+        added_links = set()
         for element in network.get_routers() + network.get_hosts():
-            # Get links for this element
-            links = element.get_links()
-            for link in links:
-                # Get the virtualized elements
-                source = network_elements[element]
-                destination = network_elements[link.endpoint.entity]
+            Logger().debug("Creating links for element: " + element.get_name())
+
+            # Add all links connected to the current element
+            for link in element.get_links():
+                # Format interface names
+                source_nic_name = f"{element.get_name()}-{link.interface.get_name()}-{link.endpoint.entity.get_name()}"
+                destination_nic_name = f"{link.endpoint.entity.get_name()}-{link.endpoint.interface.get_name()}-{element.get_name()}"
+
+                # Format IP addresses
+                source_ip = f"{link.interface.get_ip()}/{link.interface.get_prefix_length()}"
+                destination_ip = f"{link.endpoint.interface.get_ip()}/{link.endpoint.interface.get_prefix_length()}"
+
+                # Check if the link has already been added
+                if (source_nic_name, destination_nic_name) or (destination_nic_name, source_nic_name) in added_links:
+                    continue
 
                 # Create the link
                 self.addLink(
-                    source, destination,
-                    intfName1=link.interface.get_name(), params1=f"{link.interface.get_ip()}/{link.interface.get_prefix_length()}",
-                    intfName2=link.endpoint.interface.get_name(), params2=f"{link.endpoint.interface.get_ip()}/{link.endpoint.interface.get_prefix_length()}",
+                    # Virtual source node name
+                    network_elements[element],
+                    # Virtual destination node name
+                    network_elements[link.endpoint.entity],
+                    # Source node link info
+                    intfName1=source_nic_name, params1={"ip": source_ip},
+                    # Destination node link info
+                    intfName2=destination_nic_name, params2={
+                        "ip": destination_ip}
                 )
+
+                # Add link to set
+                added_links.add((source_nic_name, destination_nic_name))
 
                 # Print the link
                 Logger().debug(
@@ -85,7 +105,14 @@ class VirtualNetworkTopology(Topo):
 
 
 def run_virtual_topology(network: NetworkTopology):
+    # Before starting the virtual network, clean up any previous Mininet instances
+    cleanup()
+
+    # Start the virtual network passing the decoded network topology
     net = Mininet(topo=VirtualNetworkTopology(network), controller=None)
-    # net.start()
-    # CLI(net)
-    # net.stop()
+    # Start the virtual network
+    net.start()
+    # Start the Mininet CLI
+    CLI(net)
+    # Once the CLI is closed, stop the virtual network
+    net.stop()
