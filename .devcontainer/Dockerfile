@@ -4,8 +4,7 @@ COPY ./environment.yml /tmp/environment.yml
 
 # install additional OS packages
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends mininet iputils-ping iproute2 net-tools iperf3 \
-
+    && apt-get -y install --no-install-recommends mininet iputils-ping iproute2 net-tools iperf3 openvswitch-switch
 
 # Create environment from file
 RUN /opt/conda/bin/conda env create -f /tmp/environment.yml
@@ -23,3 +22,6 @@ RUN source /opt/conda/bin/activate mininet-yaml
 RUN echo "source /opt/conda/bin/activate mininet-yaml" >> ~/.bashrc
 # Delete environment file
 RUN rm /tmp/environment.yml
+
+# Start OpenvSwitch serviec
+RUN service openvswitch-switch start
