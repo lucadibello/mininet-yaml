@@ -26,8 +26,33 @@ class Ipv4Network:
         """
         This method checks if two IPv4 addresses can communicate with each other.
         """
-        return a.network_address() == b.network_address()\
+        return a.network_address() == b.network_address()
 
+
+class Ipv4Subnet(Ipv4Network):
+    def __init__(self, ip: str, mask: str):
+        # Construct the Ipv4Network object
+        super().__init__(ip, mask)
+        # Initialize the list of clients that are part of this subnet
+        self._clients = []
+
+    def add_client(self, client: NetworkElement):
+        """
+        This method adds a client to the subnet.
+        """
+        self._clients.append(client)
+
+    def get_clients(self) -> list[NetworkElement]:
+        """
+        This method returns the list of clients that are part of this subnet.
+        """
+        return self._clients
+
+    def __str__(self) -> str:
+        return f"{self._ip}/{self._mask}, Clients: {', '.join([client.get_name() for client in self._clients])}"
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 def does_link_exist(

@@ -1,7 +1,7 @@
 from typing import Sequence, cast
 from modules.models.network_elements import Link, NetworkElement, Host, Router, RouterNetworkInterface
 from modules.util.logger import Logger
-from modules.util.network import does_link_exist
+from modules.util.network import Ipv4Network, Ipv4Subnet, does_link_exist
 
 
 class NetworkTopology:
@@ -12,6 +12,10 @@ class NetworkTopology:
     def __init__(self, routers: list[Router], hosts: list[Host]):
         self._routers = routers
         self._hosts = hosts
+
+        # keep track of all the subnets in the network and the network elements that are part of them
+        self._subnets: list[Ipv4Subnet] = []
+        self._subnets_ids: dict[str, int] = {}
 
         _total_links = 0
 
@@ -24,7 +28,36 @@ class NetworkTopology:
         # Find links between hosts
         _total_links += NetworkTopology._create_links(self._hosts, self._hosts)
 
-        # Check if there are some network elements that are not linked to any other network element
+        # Save total number of unique links
+        self._total_links = _total_links
+
+        # Now, for each element, check if it is part of a subnet by analyzing all the interfaces
+        for element in self._routers + self._hosts:
+            for intf in element.get_interfaces():
+                # Get the network IP of the interface
+                network_ip = Ipv4Network(
+                    intf.get_ip(), intf.get_mask()).network_address()
+
+                # Create a new subnet object
+                if network_ip not in self._subnets_ids:
+                    self._subnets.append(Ipv4Subnet(
+                        network_ip, intf.get_mask()))
+
+                    Logger().debug("Found new subnet: " +
+                                   str(self._subnets[-1]))
+
+                    # Register the subnet ID for fast lookup
+                    self._subnets_ids[network_ip] = len(
+                        self._subnets) - 1
+                else:
+                    # If the subnet already exists, update the subnet object with the new element
+                    idx = self._subnets_ids[network_ip]
+                    self._subnets[idx].add_client(element)
+
+                    Logger().debug(
+                        f"Added element {element.get_name()} to subnet {self._subnets[idx]}")
+
+        # Check for any routers or hosts that are not linked to any other network element
         for router in self._routers:
             if not router.get_links():
                 Logger().warning(
@@ -38,10 +71,7 @@ class NetworkTopology:
                         host.get_name()} is not linked to any other network element."
                 )
 
-        # Save total number of unique links
-        self._total_links = _total_links
-
-    @staticmethod
+    @ staticmethod
     def _create_links(
             set_a: Sequence["NetworkElement"], set_b: Sequence["NetworkElement"]
     ) -> int:
@@ -195,3 +225,6 @@ class NetworkTopology:
 
     def get_total_links(self):
         return self._total_links
+
+    def get_subnets(self):
+        return self._subnets
