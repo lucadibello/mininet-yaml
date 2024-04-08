@@ -29,7 +29,7 @@ class VirtualNetworkTopology(Topo):
         Creates the nodes in the virtual network.
 
         Args:
-                                        elements (list[NetworkElement]): The network elements to create.
+            elements (list[NetworkElement]): The network elements to create.
         """
         for element in elements:
             virt_element = self.addHost(
