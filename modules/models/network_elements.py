@@ -20,6 +20,9 @@ class NetworkInterface:
     def get_prefix_length(self):
         return sum([bin(int(x)).count('1') for x in self._mask.split('.')])
 
+    def get_ip_subnet(self):
+        return self._ip + "/" + str(self.get_prefix_length())
+
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, NetworkInterface):
             return False

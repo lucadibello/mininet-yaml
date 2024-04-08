@@ -28,12 +28,14 @@ class NetworkTopology:
         for router in self._routers:
             if not router.get_links():
                 Logger().warning(
-                    f"Router {router.get_name()} is not linked to any other network element."
+                    f"Router {
+                        router.get_name()} is not linked to any other network element."
                 )
         for host in self._hosts:
             if not host.get_links():
                 Logger().warning(
-                    f"Host {host.get_name()} is not linked to any other network element."
+                    f"Host {
+                        host.get_name()} is not linked to any other network element."
                 )
 
         # Save total number of unique links
@@ -64,8 +66,10 @@ class NetworkTopology:
                     if isinstance(source_interface, RouterNetworkInterface) and isinstance(destination_interface, RouterNetworkInterface):
                         if source_interface.get_cost() != destination_interface.get_cost():
                             Logger().warning(
-                                f"Found cost discrepancy between {a.get_name()} (inet: {source_interface.get_name()}, cost {source_interface.get_cost()}) and {b.get_name()} (inet: {destination_interface.get_name()}, cost: {destination_interface.get_cost()}). "
-                                f"Overriding cost to {source_interface.get_cost()}."
+                                f"Found cost discrepancy between {a.get_name()} (inet: {source_interface.get_name()}, cost {source_interface.get_cost()}) and {
+                                    b.get_name()} (inet: {destination_interface.get_name()}, cost: {destination_interface.get_cost()}). "
+                                f"Overriding cost to {
+                                    source_interface.get_cost()}."
                             )
                             destination_interface.set_cost(
                                 source_interface.get_cost())
@@ -121,7 +125,8 @@ class NetworkTopology:
                 f'label="{cost}", '
                 '\n\t\tfontsize=8, '
                 f'\n\t\tlabeldistance={label_distance}, '
-                f'\n\t\theadlabel=" {source.interface.get_name()}", taillabel=" {destination.interface.get_name()}", '
+                f'\n\t\theadlabel=" {source.interface.get_name()}", taillabel=" {
+                    destination.interface.get_name()}", '
                 '\n\t\tstyle="solid", '
                 '\n\t\tcolor=black, '
                 '\n\t\tpenwidth=1, '
@@ -168,7 +173,8 @@ class NetworkTopology:
                         link_cost)
                 else:
                     Logger().debug(
-                        f"Edge between {source.get_name()} and {destination.entity.get_name()} already exists. "
+                        f"Edge between {source.get_name()} and {
+                            destination.entity.get_name()} already exists. "
                         "Skipping."
                     )
 

@@ -1,5 +1,5 @@
 from typing import Sequence
-from modules.models.network_elements import NetworkElement
+from modules.models.network_elements import NetworkElement, NetworkInterface
 from modules.models.topology import NetworkTopology
 
 from mininet.net import Mininet
@@ -29,7 +29,7 @@ class VirtualNetworkTopology(Topo):
         Creates the nodes in the virtual network.
 
         Args:
-                        elements (list[NetworkElement]): The network elements to create.
+                                        elements (list[NetworkElement]): The network elements to create.
         """
         for element in elements:
             virt_element = self.addHost(
@@ -44,10 +44,13 @@ class VirtualNetworkTopology(Topo):
         Some parts are inspired by the USI Mininet tutorial: https://www.inf.usi.ch/faculty/carzaniga/edu/adv-ntw/mininet.html
 
         Args:
-                        network (NetworkTopology): The network topology to virtualize.
+                                        network (NetworkTopology): The network topology to virtualize.
         """
 
         Logger().debug("Building the virtual network topology...")
+
+        def _get_link_endpoint_name(element: NetworkElement, interface: NetworkInterface):
+            return f"{element.get_name()}-{interface.get_name()}"
 
         # Hashmap to link network elements to Mininet nodes
         network_elements = {}
@@ -72,12 +75,14 @@ class VirtualNetworkTopology(Topo):
             # Add all links connected to the current element
             for link in element.get_links():
                 # Format interface names
-                source_nic_name = f"{element.get_name()}-{link.interface.get_name()}-{link.endpoint.entity.get_name()}"
-                destination_nic_name = f"{link.endpoint.entity.get_name()}-{link.endpoint.interface.get_name()}-{element.get_name()}"
+                source_nic_name = _get_link_endpoint_name(
+                    element, link.interface)
+                destination_nic_name = _get_link_endpoint_name(
+                    link.endpoint.entity, link.endpoint.interface)
 
                 # Format IP addresses
-                source_ip = f"{link.interface.get_ip()}/{link.interface.get_prefix_length()}"
-                destination_ip = f"{link.endpoint.interface.get_ip()}/{link.endpoint.interface.get_prefix_length()}"
+                source_ip = link.interface.get_ip_subnet()
+                destination_ip = link.endpoint.interface.get_ip_subnet()
 
                 # Check if the link has already been added
                 if (source_nic_name, destination_nic_name) or (destination_nic_name, source_nic_name) in added_links:
@@ -90,10 +95,13 @@ class VirtualNetworkTopology(Topo):
                     # Virtual destination node name
                     network_elements[link.endpoint.entity],
                     # Source node link info
-                    intfName1=source_nic_name, params1={"ip": source_ip},
+                    intfName1=source_nic_name, params1={
+                        "ip": source_ip
+                    },
                     # Destination node link info
                     intfName2=destination_nic_name, params2={
-                        "ip": destination_ip}
+                        "ip": destination_ip
+                    }
                 )
 
                 # Add link to set
@@ -107,7 +115,6 @@ class VirtualNetworkTopology(Topo):
 def run_virtual_topology(network: NetworkTopology):
     # Before starting the virtual network, clean up any previous Mininet instances
     cleanup()
-
     # Start the virtual network passing the decoded network topology
     net = Mininet(topo=VirtualNetworkTopology(network), controller=None)
     # Start the virtual network
