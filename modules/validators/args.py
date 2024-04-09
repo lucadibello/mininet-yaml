@@ -1,5 +1,4 @@
 import argparse
-from typing import Any
 import os
 
 
@@ -8,7 +7,7 @@ class ValidateDirectoryPath(argparse.Action):
     This class is used by argparse to validate the path to the directory passed as an argument by the user.
     """
 
-    def __call__(self, parser, namespace, values, option_string=None) -> Any:
+    def __call__(self, parser, namespace, values, option_string=None) -> None:
         """
         This method is called by argparse to validate the path to the directory.
         """
@@ -36,7 +35,7 @@ class ValidateYAMLPath(argparse.Action):
     This class is used by argparse to validate the path to the YAML file passed as an argument by the user.
     """
 
-    def __call__(self, parser, namespace, values, option_string=None) -> Any:
+    def __call__(self, parser, namespace, values, option_string=None) -> None:
         """
         This method is called by argparse to validate the path to the YAML file.
         """
