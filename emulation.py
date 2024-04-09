@@ -25,10 +25,7 @@ def main():
     try:
         topology = decodeTopology(file_path)
         Logger().info(
-            f"Network topology loaded. Found {len(topology.get_routers())} routers and {
-                len(topology.get_hosts())} hosts"
-            f" among {len(topology.get_subnets())} subnets. Total links: {
-                topology.get_total_links()}"
+            f"Network topology loaded. Found {len(topology.get_routers())} routers and {len(topology.get_hosts())} hosts among {len(topology.get_subnets())} subnets. Total links: { topology.get_total_links()}"
         )
 
         # Now, handle what the user wants to do with the network topology
