@@ -1,6 +1,10 @@
 # VSCODE
 .vscode/
 
+# Multipass cloud init config file
+cloud-init.yaml
+cloud-init.yml
+
 # Logs directory
 logs/
 

@@ -1,0 +1,6 @@
+groups:
+  - vscode
+runcmd:
+  - adduser ubuntu vscode
+ssh_authorized_keys:
+  - <SSH_PUBLIC_KEY>
