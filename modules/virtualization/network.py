@@ -1,5 +1,5 @@
 from typing import Sequence
-from modules.models.network_elements import NetworkElement, NetworkInterface, Link
+from modules.models.network_elements import NetworkElement, NetworkInterface
 from modules.models.topology import NetworkTopology
 
 from mininet.net import Mininet
@@ -44,7 +44,7 @@ class VirtualNetworkTopology(Topo):
         Some parts are inspired by the USI Mininet tutorial: https://www.inf.usi.ch/faculty/carzaniga/edu/adv-ntw/mininet.html
 
         Args:
-                                        network (NetworkTopology): The network topology to virtualize.
+            network (NetworkTopology): The network topology to virtualize.
         """
 
         Logger().info("Building the virtual network topology...")
@@ -82,10 +82,8 @@ class VirtualNetworkTopology(Topo):
                     link.endpoint.entity, link.endpoint.interface, element)
 
                 # Format IP addresses
-                source_ip = link.interface.get_ip_subnet()
-                destination_ip = link.endpoint.interface.get_ip_subnet()
-
-                Logger().debug(f"creating link between {network_elements[element]} and {network_elements[link.endpoint.entity]}")
+                source_ip = link.interface.get_ip_with_prefix()
+                destination_ip = link.endpoint.interface.get_ip_with_prefix()
 
                 # Check if the link has already been added
                 if (source_nic_name, destination_nic_name) in added_links or (destination_nic_name, source_nic_name) in added_links:

@@ -7,6 +7,10 @@ class NetworkInterface:
         self._name = name
         self._ip = ip
         self._mask = mask
+        # Import required modules
+        from modules.util.network import Ipv4Subnet
+        # Create the subnet
+        self._subnet = Ipv4Subnet.create_from(ip, mask)
 
     def get_name(self):
         return self._name
@@ -20,8 +24,11 @@ class NetworkInterface:
     def get_prefix_length(self):
         return sum([bin(int(x)).count('1') for x in self._mask.split('.')])
 
-    def get_ip_subnet(self):
+    def get_ip_with_prefix(self):
         return self._ip + "/" + str(self.get_prefix_length())
+    
+    def get_subnet(self):
+        return self._subnet
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, NetworkInterface):
@@ -175,3 +182,4 @@ class Host(NetworkElement):
 
     def __repr__(self):
         return self.__str__()
+

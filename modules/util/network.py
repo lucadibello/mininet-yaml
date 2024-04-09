@@ -1,5 +1,5 @@
+from typing import Generic, TypeVar
 from modules.models.network_elements import Host, NetworkElement, NetworkInterface, Router
-
 
 class Ipv4Network:
     def __init__(self, ip: str, mask: str):
@@ -28,26 +28,37 @@ class Ipv4Network:
         """
         return a.network_address() == b.network_address()
 
+# Generics types
+T = TypeVar("T", NetworkElement, Host)
+K = TypeVar("K", NetworkElement, Router)
 
-class Ipv4Subnet(Ipv4Network):
+class Ipv4Subnet(Ipv4Network, Generic[T,K]):
     def __init__(self, ip: str, mask: str):
         # Construct the Ipv4Network object
         super().__init__(ip, mask)
         # Initialize the list of clients that are part of this subnet
-        self._hosts = []
-        self._routers = []
+        self._hosts = list[T]()
+        self._routers = list[K]()
 
-    def add_host(self, host: Host):
+    @staticmethod
+    def create_from(local_ip: str, mask: str) -> "Ipv4Subnet":
+        """
+        This method creates an Ipv4Subnet object from a NetworkInterface object.
+        """
+        return Ipv4Subnet(Ipv4Network(local_ip, mask).network_address(), mask)
+
+
+    def add_host(self, host: T):
         """
         This method adds an Host to the subnet.
         """
         self._hosts.append(host)
 
-    def add_router(self, router: Router):
+    def add_router(self, router: K):
         """
         This method adds a Router to the subnet.
         """
-        self._hosts.append(router)
+        self._routers.append(router)
 
     def get_clients(self) -> list[NetworkElement]:
         """
@@ -55,13 +66,13 @@ class Ipv4Subnet(Ipv4Network):
         """
         return self._hosts + self._routers
     
-    def get_hosts(self) -> list[Host]:
+    def get_hosts(self) -> list[T]:
         """
         This method returns the list of hosts that are part of this subnet.
         """
         return self._hosts
 
-    def get_routers(self) -> list[Router]:
+    def get_routers(self) -> list[K]:
         """
         This method returns the list of routers that are part of this subnet.
         """
