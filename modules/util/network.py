@@ -1,10 +1,21 @@
-from typing import Generic, TypeVar
-from modules.models.network_elements import Host, NetworkElement, NetworkInterface, Router
+from typing import Sequence
+from modules.models.network_elements import Host, Link, NetworkElement, NetworkInterface, Router
 
 class Ipv4Network:
     def __init__(self, ip: str, mask: str):
         self._ip = ip
         self._mask = mask
+
+    def get_ip(self) -> str:
+        """
+        This method returns the IP address of the subnet.
+        """
+        return self._ip
+    def get_mask(self) -> str:
+        """
+        This method returns the subnet mask of the subnet.
+        """
+        return self._mask
 
     def to_binary(self) -> str:
         """
@@ -28,58 +39,53 @@ class Ipv4Network:
         """
         return a.network_address() == b.network_address()
 
-# Generics types
-T = TypeVar("T", NetworkElement, Host)
-K = TypeVar("K", NetworkElement, Router)
-
-class Ipv4Subnet(Ipv4Network, Generic[T,K]):
+class Ipv4Subnet(Ipv4Network):
     def __init__(self, ip: str, mask: str):
         # Construct the Ipv4Network object
         super().__init__(ip, mask)
         # Initialize the list of clients that are part of this subnet
-        self._hosts = list[T]()
-        self._routers = list[K]()
+        self._hosts = list[Link.Endpoint]()
+        self._routers = list[Link.Endpoint]()
 
     @staticmethod
     def create_from(local_ip: str, mask: str) -> "Ipv4Subnet":
         """
         This method creates an Ipv4Subnet object from a NetworkInterface object.
         """
-        return Ipv4Subnet(Ipv4Network(local_ip, mask).network_address(), mask)
-
-
-    def add_host(self, host: T):
+        return Ipv4Subnet(Ipv4Network(local_ip, mask).network_address(), mask) 
+    
+    def add_host(self, host_endpoint: Link.Endpoint):
         """
-        This method adds an Host to the subnet.
+        Host method adds an Host to the subnet.
         """
-        self._hosts.append(host)
+        self._hosts.append(host_endpoint)
 
-    def add_router(self, router: K):
+    def add_router(self, router_endpoint: Link.Endpoint):
         """
         This method adds a Router to the subnet.
         """
-        self._routers.append(router)
+        self._routers.append(router_endpoint)
 
-    def get_clients(self) -> list[NetworkElement]:
+    def get_clients(self) -> list[Link.Endpoint]:
         """
         This method returns the list of clients that are part of this subnet.
         """
         return self._hosts + self._routers
     
-    def get_hosts(self) -> list[T]:
+    def get_hosts(self) -> list[Link.Endpoint]:
         """
         This method returns the list of hosts that are part of this subnet.
         """
         return self._hosts
 
-    def get_routers(self) -> list[K]:
+    def get_routers(self) -> list[Link.Endpoint]:
         """
         This method returns the list of routers that are part of this subnet.
         """
         return self._routers
 
     def __str__(self) -> str:
-        return f"{self._ip}/{self._mask}, Clients: {', '.join([client.get_name() for client in self.get_clients()])}"
+        return f"{self._ip}/{self._mask}, Clients: {', '.join([client.entity.get_name() for client in self.get_clients()])}"
 
     def __repr__(self) -> str:
         return self.__str__()

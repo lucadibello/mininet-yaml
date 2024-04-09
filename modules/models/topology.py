@@ -21,19 +21,26 @@ class NetworkTopology:
 
         # Find and create all the links between routers and hosts
         _total_links += NetworkTopology._create_links(
-            self._routers, self._hosts)
+            self._routers,
+            self._hosts
+        )
         # Find links between routers
         _total_links += NetworkTopology._create_links(
-            self._routers, self._routers)
+            self._routers,
+            self._routers
+        )
         # Find links between hosts
-        _total_links += NetworkTopology._create_links(self._hosts, self._hosts)
+        # _total_links += NetworkTopology._create_links(
+        #     self._hosts,
+        #     self._hosts
+        # )
 
         # Save total number of unique links
         self._total_links = _total_links
 
         # Create subnets
         self._create_subnets(self._routers, are_routers=True)
-        self._create_subnets(self._hosts, are_routers=False)
+        self._create_subnets(self._hosts)
 
         # Check for any routers or hosts that are not linked to any other network element
         for router in self._routers:
@@ -102,7 +109,7 @@ class NetworkTopology:
         # Return total amount of unique links
         return total_links
 
-    def _create_subnets(self, elements: Sequence[NetworkElement], are_routers: bool):
+    def _create_subnets(self, elements: Sequence[NetworkElement], are_routers: bool = False):
         # Now, for each element, check if it is part of a subnet by analyzing all the interfaces
         for element in elements:
             for intf in element.get_interfaces():
@@ -124,16 +131,17 @@ class NetworkTopology:
                 else:
                     # If the subnet already exists, update the subnet object with the new element
                     idx = self._subnets_ids[network_ip]
+                    
+                    endpoint = Link.Endpoint(entity=element, interface=intf)
+                    
                     if are_routers:
-                        self._subnets[idx].add_router(cast(Router, element))
+                        self._subnets[idx].add_router(endpoint)
                     else:
-                        self._subnets[idx].add_host(cast(Host, element))
+                        self._subnets[idx].add_host(endpoint)
 
                     Logger().debug(
                         f"Added element {element.get_name()} to subnet {self._subnets[idx]}")
         
-        
-
     def draw(self):
         """
         This method returns a string containing a GraphViz representation of the network topology.
