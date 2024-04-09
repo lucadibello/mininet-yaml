@@ -48,7 +48,7 @@ class ValidateYAMLPath(argparse.Action):
         if not path:
             raise ValueError("The file path cannot be empty.")
         # Check if file has right extension
-        if not path.endswith(".yaml"):
+        if not (path.endswith(".yaml") or path.endswith(".yml")):
             raise ValueError("The file must be a YAML file.")
         # Check if file exists and is readable
         try:
