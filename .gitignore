@@ -1,6 +1,9 @@
 # VSCODE
 .vscode/
 
+# MacOS junk files
+.DS_Store
+
 # Multipass cloud init config file
 cloud-init.yaml
 cloud-init.yml
