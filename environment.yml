@@ -22,5 +22,5 @@ dependencies:
   - yaml=0.2.5
   - zlib=1.2.13
   - pip:
-    - mininet=2.3.0.dev6
+    - mininet==2.3.0.dev6
 prefix: /opt/conda/envs/mininet-yaml
