@@ -119,8 +119,17 @@ class NetworkTopology:
 
                 # Create a new subnet object
                 if network_ip not in self._subnets_ids:
-                    self._subnets.append(Ipv4Subnet(
-                        network_ip, intf.get_mask()))
+                    # Create a new subnet object
+                    subnet = Ipv4Subnet(network_ip, intf.get_mask())
+                    
+                    # Add the element to the subnet
+                    if are_routers:
+                        subnet.add_router(Link.Endpoint(entity=element, interface=intf))
+                    else:
+                        subnet.add_host(Link.Endpoint(entity=element, interface=intf))
+                    
+                    # Add subnet to the list of subnets
+                    self._subnets.append(subnet)
 
                     Logger().debug("Found new subnet: " +
                                    str(self._subnets[-1]))

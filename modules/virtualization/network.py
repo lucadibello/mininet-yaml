@@ -1,5 +1,5 @@
-from typing import Sequence
-from modules.models.network_elements import Host, NetworkElement, NetworkInterface
+from typing import Sequence, cast
+from modules.models.network_elements import Host, NetworkElement, NetworkInterface, Router
 from modules.models.topology import NetworkTopology
 
 from mininet.net import Mininet
@@ -10,6 +10,9 @@ from mininet.clean import cleanup
 
 from modules.util.logger import Logger
 from modules.util.network import Ipv4Subnet
+from modules.virtualization.network_elements import VirtualHost, VirtualNetworkElement, VirtualRouter
+
+from itertools import chain
 
 
 class LinuxRouter(Node):
@@ -23,10 +26,32 @@ class LinuxRouter(Node):
         super(LinuxRouter, self).terminate()
 
 
-class VirtualNetworkTopology(Topo):
+class VirtualNetwork:
+    def __init__(self):
+        self._virtual_routers = list[VirtualRouter]()
+        self._virtual_hosts = list[VirtualHost]()
+        self._net: Mininet | None = None # type: ignore
+        
+    def set_network(self, net: Mininet):
+        self._net = net
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def get_node(self, virtual_element: VirtualNetworkElement) -> Node:
+        if not self._net:
+            raise ValueError("The virtual network has not been linked to the Mininet instance yet!")
+        # Force type cast to Node (Mininet node)
+        return cast(Node, self._net.get(virtual_element.get_name()))
+    
+    def add_virtual_router(self, router: VirtualRouter):
+        self._virtual_routers.append(router)
+    
+    def get_virtual_routers(self) -> list[VirtualRouter]:
+        return self._virtual_routers
+
+    def add_virtual_host(self, host: VirtualHost):
+        self._virtual_hosts.append(host)
+    
+
+class VirtualNetworkTopology(Topo):
 
     @staticmethod
     def _generate_link_endpoint_name(source: NetworkElement, source_interface: NetworkInterface, destination: NetworkElement):
@@ -38,6 +63,8 @@ class VirtualNetworkTopology(Topo):
             virtual_element = self.addHost(element.get_name(), ip=None, **kwargs)
             # Add the node to the lookup table
             virtual_elements_lookup_table[element] = virtual_element
+            # Yield the element and the virtual element
+            yield element
 
     def _create_links(self, elements: Sequence[NetworkElement], virtual_elements_lookup_table: dict[NetworkElement, str]):
 
@@ -49,9 +76,8 @@ class VirtualNetworkTopology(Topo):
             # Add all links connected to the current element
             for link in element.get_links():
                 
-                # Skip links that are connected to simple hosts!
+                # Skip links that are connected to simple hosts as they have already been handled
                 if isinstance(link.endpoint.entity, Host):
-                    print("Skipped link to host")
                     continue
 
                 # Format interface names
@@ -119,7 +145,11 @@ class VirtualNetworkTopology(Topo):
                         },
                     )
             else:
-                # Create the switch
+                # Generate a new management IP for the Switch in this particular subnet
+                switch_ip = subnet.get_next_management_ip()
+                switch_ip_with_prefix = f"{switch_ip}/{subnet.get_prefix_length()}"
+                
+                # Create the switch 
                 switch = self.addSwitch(f"s{switch_counter}")
                 # Increment the switch counter
                 switch_counter += 1
@@ -131,16 +161,16 @@ class VirtualNetworkTopology(Topo):
                     virtual_router = virtual_elements_lookup_table[router.entity]
                     switch_intf_name = f"{switch}-{router.interface.get_name()}-{router.entity.get_name()}"
                     router_intf_name = f"{router.entity.get_name()}-{router.interface.get_name()}-{switch}"
-                    
+
                     self.addLink(
                         switch,
                         virtual_router,
 
                         # Source interface (Switch)
                         intfName1=switch_intf_name,
-                        # params1={
-                        #     "ip": subnet.get_gateway()
-                        # },
+                        params1={
+                             "ip": switch_ip_with_prefix
+                        },
                         
                         # Destination interface (Router)
                         intfName2=router_intf_name,
@@ -159,9 +189,9 @@ class VirtualNetworkTopology(Topo):
                         virtual_host,
                         # Source interface (Switch)
                         intfName1=switch_intf_name,
-                        # params1={
-                        #     "ip": subnet.get_gateway()
-                        # },
+                        params1={
+                            "ip": switch_ip_with_prefix
+                        },
                         
                         # Destination interface (Host)
                         intfName2=host_intf_name,
@@ -170,7 +200,7 @@ class VirtualNetworkTopology(Topo):
                         },
                     )
 
-    def build(self, network: NetworkTopology):
+    def build(self, network: NetworkTopology, virtual_network: VirtualNetwork):
         """
         Virtualizes the network topology leveraging Mininet.
 
@@ -185,8 +215,17 @@ class VirtualNetworkTopology(Topo):
         virtual_elements_lookup_table = dict[NetworkElement, str]()
 
         # Create empty nodes for each router and host
-        self._create_nodes(network.get_routers(), virtual_elements_lookup_table, cls=LinuxRouter)
-        self._create_nodes(network.get_hosts(), virtual_elements_lookup_table)
+        for element in chain(
+            self._create_nodes(network.get_routers(), virtual_elements_lookup_table, cls=LinuxRouter),
+            self._create_nodes(network.get_hosts(), virtual_elements_lookup_table)
+        ):
+            # Check if the element is a router or a host
+            if isinstance(element, Router):
+                virtual_router = VirtualRouter(name=element.get_name(), physical_router=element)
+                virtual_network.add_virtual_router(virtual_router)
+            else: # then it is a host
+                virtual_host = VirtualHost(name=element.get_name(), physical_host=element)
+                virtual_network.add_virtual_host(virtual_host)
 
         # Create switches for each subnet and connect them to the routers and hosts
         self._build_network(network.get_subnets(), virtual_elements_lookup_table)
@@ -197,10 +236,28 @@ class VirtualNetworkTopology(Topo):
 def run_virtual_topology(network: NetworkTopology):
     # Before starting the virtual network, clean up any previous Mininet instances
     cleanup()
+    # Create empty virtual network
+    virtual_network = VirtualNetwork()
     # Start the virtual network passing the decoded network topology
-    net = Mininet(topo=VirtualNetworkTopology(network), controller=None)
+    net = Mininet(topo=VirtualNetworkTopology(network=network, virtual_network=virtual_network), controller=None)
+    # Link the virtual network to the virtual network object
+    virtual_network.set_network(net)
     # Start the virtual network
     net.start()
+
+    Logger().info("Network topology virtualized successfully! Configuring routing tables...")
+
+    # Build routing table for each virtual router in the network
+    for virtual_router in virtual_network.get_virtual_routers():
+        # Build the routing table for the router
+        Logger().debug(f"Configuring routing table for {virtual_router.get_physical_element().get_name()}...")
+        for interface in virtual_router.get_physical_element().get_interfaces():
+            # Add the route to the routing table
+            virtual_network.get_node(virtual_router).cmd(f"ip route add {interface.get_subnet().network_address()} via {interface.get_ip()} dev {interface.get_name()}")
+            Logger().debug(f"Added route to {interface.get_subnet().network_address()} via {interface.get_ip()} on {interface.get_name()}")
+    
+    Logger().info("Routing tables configured successfully! Starting the Mininet CLI...")
+    
     # Start the Mininet CLI
     CLI(net)
     # Once the CLI is closed, stop the virtual network

@@ -22,7 +22,7 @@ class NetworkInterface:
         return self._mask
 
     def get_prefix_length(self):
-        return sum([bin(int(x)).count('1') for x in self._mask.split('.')])
+        return self._subnet.get_prefix_length()
 
     def get_ip_with_prefix(self):
         return self._ip + "/" + str(self.get_prefix_length())
