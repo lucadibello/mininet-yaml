@@ -1,4 +1,4 @@
-from modules.models.network_elements import NetworkElement, NetworkInterface
+from modules.models.network_elements import Host, NetworkElement, NetworkInterface, Router
 
 
 class Ipv4Network:
@@ -34,22 +34,41 @@ class Ipv4Subnet(Ipv4Network):
         # Construct the Ipv4Network object
         super().__init__(ip, mask)
         # Initialize the list of clients that are part of this subnet
-        self._clients = []
+        self._hosts = []
+        self._routers = []
 
-    def add_client(self, client: NetworkElement):
+    def add_host(self, host: Host):
         """
-        This method adds a client to the subnet.
+        This method adds an Host to the subnet.
         """
-        self._clients.append(client)
+        self._hosts.append(host)
+
+    def add_router(self, router: Router):
+        """
+        This method adds a Router to the subnet.
+        """
+        self._hosts.append(router)
 
     def get_clients(self) -> list[NetworkElement]:
         """
         This method returns the list of clients that are part of this subnet.
         """
-        return self._clients
+        return self._hosts + self._routers
+    
+    def get_hosts(self) -> list[Host]:
+        """
+        This method returns the list of hosts that are part of this subnet.
+        """
+        return self._hosts
+
+    def get_routers(self) -> list[Router]:
+        """
+        This method returns the list of routers that are part of this subnet.
+        """
+        return self._routers
 
     def __str__(self) -> str:
-        return f"{self._ip}/{self._mask}, Clients: {', '.join([client.get_name() for client in self._clients])}"
+        return f"{self._ip}/{self._mask}, Clients: {', '.join([client.get_name() for client in self.get_clients()])}"
 
     def __repr__(self) -> str:
         return self.__str__()

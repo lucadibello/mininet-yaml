@@ -31,31 +31,9 @@ class NetworkTopology:
         # Save total number of unique links
         self._total_links = _total_links
 
-        # Now, for each element, check if it is part of a subnet by analyzing all the interfaces
-        for element in self._routers + self._hosts:
-            for intf in element.get_interfaces():
-                # Get the network IP of the interface
-                network_ip = Ipv4Network(
-                    intf.get_ip(), intf.get_mask()).network_address()
-
-                # Create a new subnet object
-                if network_ip not in self._subnets_ids:
-                    self._subnets.append(Ipv4Subnet(
-                        network_ip, intf.get_mask()))
-
-                    Logger().debug("Found new subnet: " +
-                                   str(self._subnets[-1]))
-
-                    # Register the subnet ID for fast lookup
-                    self._subnets_ids[network_ip] = len(
-                        self._subnets) - 1
-                else:
-                    # If the subnet already exists, update the subnet object with the new element
-                    idx = self._subnets_ids[network_ip]
-                    self._subnets[idx].add_client(element)
-
-                    Logger().debug(
-                        f"Added element {element.get_name()} to subnet {self._subnets[idx]}")
+        # Create subnets
+        self._create_subnets(self._routers, are_routers=True)
+        self._create_subnets(self._hosts, are_routers=False)
 
         # Check for any routers or hosts that are not linked to any other network element
         for router in self._routers:
@@ -71,7 +49,7 @@ class NetworkTopology:
                     "is not linked to any other network element."
                 )
 
-    @ staticmethod
+    @staticmethod
     def _create_links(
             set_a: Sequence["NetworkElement"], set_b: Sequence["NetworkElement"]
     ) -> int:
@@ -123,6 +101,38 @@ class NetworkTopology:
 
         # Return total amount of unique links
         return total_links
+
+    def _create_subnets(self, elements: Sequence[NetworkElement], are_routers: bool):
+        # Now, for each element, check if it is part of a subnet by analyzing all the interfaces
+        for element in elements:
+            for intf in element.get_interfaces():
+                # Get the network IP of the interface
+                network_ip = Ipv4Network(
+                    intf.get_ip(), intf.get_mask()).network_address()
+
+                # Create a new subnet object
+                if network_ip not in self._subnets_ids:
+                    self._subnets.append(Ipv4Subnet(
+                        network_ip, intf.get_mask()))
+
+                    Logger().debug("Found new subnet: " +
+                                   str(self._subnets[-1]))
+
+                    # Register the subnet ID for fast lookup
+                    self._subnets_ids[network_ip] = len(
+                        self._subnets) - 1
+                else:
+                    # If the subnet already exists, update the subnet object with the new element
+                    idx = self._subnets_ids[network_ip]
+                    if are_routers:
+                        self._subnets[idx].add_router(cast(Router, element))
+                    else:
+                        self._subnets[idx].add_host(cast(Host, element))
+
+                    Logger().debug(
+                        f"Added element {element.get_name()} to subnet {self._subnets[idx]}")
+        
+        
 
     def draw(self):
         """
