@@ -29,11 +29,6 @@ class NetworkTopology:
             self._routers,
             self._routers
         )
-        # Find links between hosts
-        # _total_links += NetworkTopology._create_links(
-        #     self._hosts,
-        #     self._hosts
-        # )
 
         # Save total number of unique links
         self._total_links = _total_links
@@ -46,13 +41,13 @@ class NetworkTopology:
         for router in self._routers:
             if not router.get_links():
                 Logger().warning(
-                    f"Router {router.get_name()}"
+                    f"Router {router.get_name()} "
                     "is not linked to any other network element."
                 )
         for host in self._hosts:
             if not host.get_links():
                 Logger().warning(
-                    f"Host {host.get_name()}"
+                    f"Host {host.get_name()} "
                     "is not linked to any other network element."
                 )
 

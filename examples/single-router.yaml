@@ -4,13 +4,10 @@ routers:
       address: 192.168.0.1
       mask: 255.255.255.252
       cost: 5
-    eth2:
-      address: 192.168.0.5
-      mask: 255.255.255.252
   r2:
     eth0:
       address: 192.168.0.2
-      mask: 255.255.255.252
+      mask: 255.255.255.0
       cost: 2
 
 hosts:

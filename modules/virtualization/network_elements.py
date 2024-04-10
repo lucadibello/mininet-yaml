@@ -1,4 +1,8 @@
+from typing import Optional, cast
 from modules.models.network_elements import Router, NetworkInterface, NetworkElement
+
+from mininet.node import Node
+from mininet.net import Mininet
 
 class VirtualNetworkInterface():
     def __init__(self, name: str, physical_interface: NetworkInterface):
@@ -39,3 +43,33 @@ class VirtualHost(VirtualNetworkElement):
     def __init__(self, physical_host: NetworkElement):
         super().__init__(physical_host)
         
+class VirtualNetwork:
+    def __init__(self):
+        self._virtual_routers = list[VirtualRouter]()
+        self._virtual_hosts = list[VirtualHost]()
+        self._virtual_switches = list[VirtualNetworkElement]()
+        self._net: Optional[Mininet] = None
+        
+    def set_network(self, net: Mininet):
+        self._net = net
+
+    def get_node(self, virtual_element: VirtualNetworkElement) -> Node:
+        if not self._net:
+            raise ValueError("The virtual network has not been linked to the Mininet instance yet!")
+        # Force type cast to Node (Mininet node)
+        return cast(Node, self._net.get(virtual_element.get_name()))
+
+    def add_virtual_switch(self, switch: VirtualNetworkElement):
+        self._virtual_switches.append(switch)
+    
+    def add_virtual_router(self, router: VirtualRouter):
+        self._virtual_routers.append(router)
+    
+    def get_virtual_routers(self) -> list[VirtualRouter]:
+        return self._virtual_routers
+
+    def add_virtual_host(self, host: VirtualHost):
+        self._virtual_hosts.append(host)
+
+    def get_virtual_switches(self) -> list[VirtualNetworkElement]:
+        return self._virtual_switches
