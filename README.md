@@ -17,3 +17,10 @@ Finally, you can run the tool by providing the path to the YAML e file with the 
 ```bash
 python main.py topology.example.yaml
 ```
+
+## Things to do
+
+- [ ] Add default gateway to the hosts (hosts have only one interface, so the default gateway is the first one)
+- [ ] Create algorithm that chooses which interface to connect to the switch and which to other routers
+- [ ] Configure routing tables in the Routers (static routing)
+- [ ] Rename switches ports properly: switch connection to router = `s-eth0`, host input ports = `s-eth<N_HOST>`
