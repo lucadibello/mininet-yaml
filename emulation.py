@@ -39,7 +39,6 @@ def main():
             Logger().debug("Creating virtual network...")
             # Create the virtual network
             run_virtual_topology(topology)
-
     except ValueError as e:
         Logger().fatal(str(e))
 
