@@ -149,7 +149,7 @@ class NetworkTopology:
                         self._subnets[idx].add_host(endpoint)
 
                     Logger().debug(
-                        f"Added element {element.get_name()} to subnet {self._subnets[idx]}")
+                        f"\t * added element {element.get_name()} to subnet {self._subnets[idx].network_address()}")
         
     def draw(self):
         """
