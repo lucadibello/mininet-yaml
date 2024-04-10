@@ -37,7 +37,7 @@ def main():
             print(graph)
         else:
             Logger().debug("Creating virtual network...")
-            # Create the virtual network
+            # Create and virtualize decoded topology
             run_virtual_topology(topology)
     except ValueError as e:
         Logger().fatal(str(e))

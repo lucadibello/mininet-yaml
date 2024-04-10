@@ -1,19 +1,15 @@
 from typing import Sequence, cast
-from modules.models.network_elements import NetworkElement, NetworkInterface, Router
+from modules.models.network_elements import NetworkElement, NetworkInterface
 from modules.models.topology import NetworkTopology
 
 from mininet.net import Mininet
 from mininet.node import Node
 from mininet.topo import Topo
 from mininet.cli import CLI
-from mininet.clean import cleanup
 
 from modules.util.logger import Logger
 from modules.util.network import Ipv4Subnet
 from modules.virtualization.network_elements import VirtualHost, VirtualNetworkElement, VirtualNetworkInterface, VirtualRouter
-
-from itertools import chain
-
 
 class LinuxRouter(Node):
     def config(self, **params):
@@ -59,8 +55,17 @@ class VirtualNetwork:
 
 class VirtualNetworkTopology(Topo): 
  
-    # Print network links
     def _does_link_exist(self, src: str, dst: str, link: tuple[str,str]) -> bool:
+        """This method checks if a link between two nodes, with the specified interfaces, already exists in the topology.
+
+        Args:
+            src (str): Source node name
+            dst (str): Destination node name
+            link (tuple[str,str]): Tuple containing source and destination interface names
+
+        Returns:
+            bool: True if the link exists, False otherwise
+        """
         for entry in self.links(True, True, True):
             src_node = entry[0] # type: ignore
             dst_node = entry[1] # type: ignore
@@ -68,22 +73,22 @@ class VirtualNetworkTopology(Topo):
             intfname1 = info["intfName1"]
             intfname2 = info["intfName2"]
 
-            print("checking", src, dst, link, "against", src_node, dst_node, (intfname1, intfname2))
-
             is_same_elements = (src_node == src and dst_node == dst) or (src_node == dst and dst_node == src)
             is_same_interfaces = intfname1 == link[0] and intfname2 == link[1] or intfname1 == link[1] and intfname2 == link[0]
 
             if is_same_elements and is_same_interfaces:
-                print("link exists")
                 return True
         return False
 
     def _create_nodes(self, elements: Sequence[NetworkElement], **kwargs):
+        """This methods creates virtual nodes for each NetworkElement in the list.
+
+        Args:
+            elements (Sequence[NetworkElement]): Sequence of NetworkElements
+        """
         for element in elements:
             # Create the node with the same name as the NetworkElement
             self.addHost(element.get_name(), ip=None, **kwargs)
-            # Yield the element and the virtual element
-            yield element
 
     def _link_routers(self, subnets: Sequence[Ipv4Subnet]):
         from itertools import combinations
@@ -294,7 +299,6 @@ class VirtualNetworkTopology(Topo):
                         params1={
                             "ip": switch_ip_with_prefix
                         },
-                        
                         # Destination interface (Host)
                         intfName2=host_intf_name,
                         params2={
@@ -319,31 +323,34 @@ class VirtualNetworkTopology(Topo):
 
         virtual_elements_lookup_table = dict[NetworkElement, VirtualNetworkElement]()
 
-        # Create empty nodes for each router and host
-        for element in chain(
-            self._create_nodes(network.get_routers(), cls=LinuxRouter),
-            self._create_nodes(network.get_hosts())
-        ):
-            # Check if the element is a router or a host
-            if isinstance(element, Router):
-                virtual_router = VirtualRouter(physical_router=element)
-                virtual_network.add_virtual_router(virtual_router)
-                # Register element in lookup table
-                virtual_elements_lookup_table[element] = virtual_router
-            else: # then it is a host
-                virtual_host = VirtualHost(physical_host=element)
-                virtual_network.add_virtual_host(virtual_host)
-                # Register element in lookup table
-                virtual_elements_lookup_table[element] = virtual_router
+        # Add routers to topology
+        self._create_nodes(network.get_routers(), cls=LinuxRouter)
+        for router in network.get_routers():
+            # Create virtual network element
+            virtual_router = VirtualRouter(physical_router=router)
+            virtual_network.add_virtual_router(virtual_router)
+            # Register element in lookup table
+            virtual_elements_lookup_table[router] = virtual_router
 
+        # Add hosts to topology
+        self._create_nodes(network.get_hosts())
+        for host in network.get_hosts():
+            # Create virtual network element
+            virtual_host = VirtualHost(physical_host=host)
+            virtual_network.add_virtual_host(virtual_host)
+            # Register host in lookup table
+            virtual_elements_lookup_table[host] = virtual_router
 
-        # Create all links between routers
+        # Create links between interconnected routers
         self._link_routers(network.get_subnets())
 
         # For each subnet, create a switch (if needed) and connect hosts to routers
         for virtual_switch in self._link_hosts_routers(network.get_subnets(), virtual_elements_lookup_table):
             # Add the switch to the virtual network
             virtual_network.add_virtual_switch(virtual_switch)
+        
+        # Notify that the topology has been constructed
+        Logger().info("The virtual network topology has been built.")
             
 def run_virtual_topology(network: NetworkTopology):
     # Create empty virtual network
@@ -351,21 +358,24 @@ def run_virtual_topology(network: NetworkTopology):
 
     # Start the virtual network passing the decoded network topology
     net = Mininet(
-        topo=VirtualNetworkTopology(network=network, virtual_network=virtual_network),
-        controller=None,
+        topo=VirtualNetworkTopology(
+              network=network, # pass decoded network topology
+            virtual_network=virtual_network # pass store for virtual network elements (Mininet nodes + their virtual interfaces)
+        ),
         cleanup=True,
         autoSetMacs=True,
         waitConnected=True
     )
     # Link the virtual network to the virtual network object
     virtual_network.set_network(net)
-    # Start the virtual network
+
+    # Start Mininet
     Logger().info("Starting the virtual network...")
     net.start()
 
     Logger().info("Network topology virtualized successfully! Configuring routing tables...")
 
-    # # Build routing table for each virtual router in the network
+    # Build routing table for each virtual router in the network
     # for virtual_router in virtual_network.get_virtual_routers():
     #     # Build the routing table for the router
     #     Logger().debug(f"Configuring routing table for {virtual_router.get_physical_element().get_name()}...")
