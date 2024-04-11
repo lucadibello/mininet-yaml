@@ -53,6 +53,10 @@ class VirtualNetworkElement():
     def get_gateway(self) -> Optional[Gateway]:
         return self._gateway
 
+#
+# Specialized classes for (possible) future extensions
+#
+
 class VirtualRouter(VirtualNetworkElement):
     def __init__(self, physical_router: Router):
         super().__init__(physical_router)
@@ -60,6 +64,10 @@ class VirtualRouter(VirtualNetworkElement):
 class VirtualHost(VirtualNetworkElement):
     def __init__(self, physical_host: NetworkElement):
         super().__init__(physical_host)
+    
+class VirtualSwitch(VirtualNetworkElement):
+    def __init__(self, physical_switch: NetworkElement):
+        super().__init__(physical_switch)
         
 class VirtualNetwork:
     def __init__(self):
@@ -86,7 +94,7 @@ class VirtualNetwork:
         # Force type cast to Node (Mininet node)
         return cast(Node, self._net.get(virtual_element.get_name()))
 
-    def add_switch(self, switch: VirtualNetworkElement):
+    def add_switch(self, switch: VirtualSwitch):
         self._virtual_physical_links[switch.get_name()] = switch
         self._virtual_switches.append(switch)
     
@@ -94,12 +102,15 @@ class VirtualNetwork:
         self._virtual_physical_links[router.get_name()] = router
         self._virtual_routers.append(router)
     
-    def get_routers(self) -> list[VirtualRouter]:
-        return self._virtual_routers
-
     def add_host(self, host: VirtualHost):
         self._virtual_physical_links[host.get_name()] = host
         self._virtual_hosts.append(host)
+
+    def get_routers(self) -> list[VirtualRouter]:
+        return self._virtual_routers
+
+    def get_hosts(self) -> list[VirtualHost]:
+        return self._virtual_hosts
 
     def get_switches(self) -> list[VirtualNetworkElement]:
         return self._virtual_switches
