@@ -1,17 +1,15 @@
 from typing import Optional, cast
-from modules.models.network_elements import NetworkElement 
 from modules.models.topology import NetworkTopology
 
 from mininet.net import Mininet
-from mininet.topo import Topo
 from mininet.cli import CLI
-from mininet.node import Node, Intf
+from mininet.node import Node
 from mininet.clean import cleanup
 
 from modules.util.logger import Logger
 from modules.util.mininet import executeChainedCommands, executeCommand
-from modules.virtualization.mininet_types import LinuxRouter, VirtualNetworkTopology
-from modules.virtualization.network_elements import VirtualHost, VirtualNetwork, VirtualNetworkElement, VirtualNetworkInterface, VirtualRouter
+from modules.virtualization.mininet_types import VirtualNetworkTopology
+from modules.virtualization.network_elements import VirtualNetwork, VirtualNetworkInterface
 
             
 def run_virtual_topology(network: NetworkTopology):
@@ -39,7 +37,7 @@ def run_virtual_topology(network: NetworkTopology):
     Logger().info("Starting the virtual network...")
     net.start()
 
-    Logger().debug("Configuring IP addresses of the remaining virtual interfaces...")
+    Logger().debug("Configuring IP addresses of the remaining unconfigured interfaces...")
                  
     # For each network element, configure the IP address of the virtual interfaces
     # FIXME: after implementing hosts this will become: network.get_routers() + network.get_hosts()
@@ -78,8 +76,7 @@ def run_virtual_topology(network: NetworkTopology):
                 
     # Create routing tables for the routers
     for virt_router in virtual_network.get_routers():
-        Logger().debug(f"Configuring routing table for router {virt_router.get_name()}")
-        
+        Logger().debug(f"Configuring default gateway for router {virt_router.get_name()}")
         # Get mininet node
         node = net.get(virt_router.get_name())
         # cast to Node type (as Mininet does not specify any return type...)
@@ -92,6 +89,8 @@ def run_virtual_topology(network: NetworkTopology):
         if gateway:
             # Now, add default gateway for the router in order to be able to reach subnets outside the ones it is directly connected to
             executeCommand(node, f"ip route add default via {gateway.ip}")
+        else:
+            Logger().debug(f"\t [!] router {virt_router.get_name()} does not need a default gateway as it connects to all the subnets it needs to reach")
 
     # Start the Mininet CLI
     CLI(net)

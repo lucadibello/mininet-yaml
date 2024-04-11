@@ -141,7 +141,8 @@ class VirtualNetworkTopology(Topo):
 
             # Now that we have found a valid subnet, we must ensure that there is a router connected to it
             if tot_routers == 0:
-                Logger().warning(f"No router present in subnet {subnet.network_address()}/{subnet.get_prefix_length()}. Cannot connect its hosts to the virtual network.")
+                hosts = ' ,'.join([host.entity.get_name() for host in subnet.get_hosts()])
+                Logger().warning(f"No router present in subnet {subnet.network_address()}/{subnet.get_prefix_length()}. The following hosts will not be connected: {hosts}")
 
             # Now, if we have only one host, we can connect it directly to the router without a switch
             if tot_hosts == 1:
