@@ -11,6 +11,8 @@ class NetworkInterface:
         from modules.util.network import Ipv4Subnet
         # Create the subnet
         self._subnet = Ipv4Subnet.create_from(ip, mask)
+        # Flag that indicates if the interface is used
+        self._used = False
 
     def get_name(self):
         return self._name
@@ -29,6 +31,13 @@ class NetworkInterface:
     
     def get_subnet(self):
         return self._subnet
+    
+    def is_used(self):
+        return self._used
+    
+    def set_used(self, used: bool):
+        self._used = used
+
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, NetworkInterface):

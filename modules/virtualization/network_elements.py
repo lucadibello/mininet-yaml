@@ -1,4 +1,4 @@
-from typing import Optional, cast
+from typing import Optional, TypedDict, cast
 from modules.models.network_elements import Router, NetworkInterface, NetworkElement
 
 from mininet.node import Node
@@ -17,11 +17,23 @@ class VirtualNetworkInterface():
     def physical_interface(self) -> NetworkInterface:
         return self._physical_interface
 
+class Gateway():
+    def __init__(self, ip: str, via_interface_name: str):
+        self._interface = via_interface_name
+        self._ip = ip
+    
+    @property
+    def ip(self) -> str:
+        return self._ip
+    @property
+    def interface(self) -> str:
+        return self._interface
 
 class VirtualNetworkElement():
     def __init__(self, physical_element: NetworkElement):
         self._physical_element = physical_element
         self._virtual_interfaces = list[VirtualNetworkInterface]()
+        self._gateway: Optional[Gateway] = None
     
     def get_name(self) -> str:
         return self._physical_element.get_name()
@@ -34,6 +46,12 @@ class VirtualNetworkElement():
     
     def get_virtual_interfaces(self) -> list[VirtualNetworkInterface]:
         return self._virtual_interfaces
+    
+    def set_gateway(self, gateway: Gateway):
+        self._gateway = gateway
+
+    def get_gateway(self) -> Optional[Gateway]:
+        return self._gateway
 
 class VirtualRouter(VirtualNetworkElement):
     def __init__(self, physical_router: Router):
@@ -49,27 +67,39 @@ class VirtualNetwork:
         self._virtual_hosts = list[VirtualHost]()
         self._virtual_switches = list[VirtualNetworkElement]()
         self._net: Optional[Mininet] = None
-        
+
+        # Link between physical and virtual network elements
+        self._virtual_physical_links = dict[str, VirtualNetworkElement]()
+
+    def has(self, element: NetworkElement) -> bool:
+        return element.get_name() in self._virtual_physical_links
+
     def set_network(self, net: Mininet):
         self._net = net
 
-    def get_node(self, virtual_element: VirtualNetworkElement) -> Node:
+    def get(self, name: str) -> Optional[VirtualNetworkElement]:
+        return self._virtual_physical_links.get(name, None)
+
+    def get_mininet_node(self, virtual_element: VirtualNetworkElement) -> Node:
         if not self._net:
             raise ValueError("The virtual network has not been linked to the Mininet instance yet!")
         # Force type cast to Node (Mininet node)
         return cast(Node, self._net.get(virtual_element.get_name()))
 
-    def add_virtual_switch(self, switch: VirtualNetworkElement):
+    def add_switch(self, switch: VirtualNetworkElement):
+        self._virtual_physical_links[switch.get_name()] = switch
         self._virtual_switches.append(switch)
     
-    def add_virtual_router(self, router: VirtualRouter):
+    def add_router(self, router: VirtualRouter):
+        self._virtual_physical_links[router.get_name()] = router
         self._virtual_routers.append(router)
     
-    def get_virtual_routers(self) -> list[VirtualRouter]:
+    def get_routers(self) -> list[VirtualRouter]:
         return self._virtual_routers
 
-    def add_virtual_host(self, host: VirtualHost):
+    def add_host(self, host: VirtualHost):
+        self._virtual_physical_links[host.get_name()] = host
         self._virtual_hosts.append(host)
 
-    def get_virtual_switches(self) -> list[VirtualNetworkElement]:
+    def get_switches(self) -> list[VirtualNetworkElement]:
         return self._virtual_switches
