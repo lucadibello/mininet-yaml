@@ -61,13 +61,13 @@ def run_virtual_topology(network: NetworkTopology):
         for intf in intfs:
             if not any(vintf.physical_interface.get_name() == intf.get_name() for vintf in vintfs):
                 intf_name = element.get_name() + "-" + intf.get_name()
-                Logger().debug(f"Creating missing virtual interface {intf_name} for element {element.get_name()}...")
+                Logger().debug(f"Creating missing virtual interface {intf_name} for element {element.get_name()} (will be kept down as it is not connected to any other element)...")
 
-                # Create the virtual interface and set the related IP address
+                # # Create the virtual interface and set the related IP address
                 executeChainedCommands(node, [
                     f"ip link add {intf_name} type veth",
                     f"ifconfig {intf_name} {intf.get_ip()} netmask {intf.get_mask()}",
-                    f"ifconfig {intf_name} up",
+                    f"ifconfig {intf_name} down",
                 ])
 
                 # Register created interface in the virtual network object
@@ -90,7 +90,7 @@ def run_virtual_topology(network: NetworkTopology):
             # Now, add default gateway for the router in order to be able to reach subnets outside the ones it is directly connected to
             executeCommand(node, f"ip route add default via {gateway.ip}")
         else:
-            Logger().debug(f"\t [!] router {virt_router.get_name()} does not need a default gateway as it connects to all the subnets it needs to reach")
+            Logger().debug(f"\t [!] router {virt_router.get_name()} does not have a default gateway defined.")
 
     # Start the Mininet CLI
     CLI(net)
