@@ -36,7 +36,11 @@ class VirtualNetworkTopology(Topo):
 
         # Create mapping between virtual elements and Mininet nodes
         Logger().debug("Creating links between routers...")
-        self._link_routers(network.get_routers(), virtual_network)
+    
+        # Connect routers together using the best path possible. Doing this ensures that the optimal path is used every time.
+        self._link_routers_best_path(network.get_routers(), virtual_network)
+        # As there might be other (non optimal) alternative connections, we need to connect the remaining interfaces to have a complete network 
+        self._link_router_alternative_paths(network.get_routers(), virtual_network)
         
         # First of all, we need to create the virtual network by connecting together the virtual elements
         self._link_hosts(network.get_subnets(), virtual_network)
@@ -44,7 +48,7 @@ class VirtualNetworkTopology(Topo):
         # Notify that the topology has been constructed
         Logger().info("The virtual network topology has been built.")
 
-    def _link_routers(self, routers: list[Router], virtual_network: VirtualNetwork):
+    def _link_routers_best_path(self, routers: list[Router], virtual_network: VirtualNetwork):
         """This method connects routers together the best way possible, using the shortest path algorithm.
         This is necessary as we cannot connect the same interface to multiple routers, so we need to find the best way to connect them together.
 
@@ -98,7 +102,7 @@ class VirtualNetworkTopology(Topo):
             )
 
             # Debug log that the link has been created
-            Logger().debug(f"\t * created link: {router.get_name()}:{src_intf_name} <--> {previous_router_link.router.get_name()}:{dst_intf_name}")
+            Logger().debug(f"\t * created optimal link: {router.get_name()}:{src_intf_name} <--> {previous_router_link.router.get_name()}:{dst_intf_name}")
             Logger().debug(f"\t\t IP: {previous_router_link.via_interface.get_ip_with_prefix()} <--> {previous_router_link.destination_interface.get_ip_with_prefix()}")
 
             # Find the virtual router objects and register the virtual interfaces
@@ -129,6 +133,84 @@ class VirtualNetworkTopology(Topo):
                 via_interface_name=src_vintf.name
             ))
 
+    def _link_router_alternative_paths(self, routers: list[Router], virtual_network: VirtualNetwork):
+        # This helper method allows to check if there is already a link that uses the same interface
+        def is_interface_used(router: Router, interface_name: str) -> bool:
+            # Get the virtual router object
+            virt_router = virtual_network.get(router.get_name())
+            if virt_router is None:
+                raise ValueError(f"Router {router.get_name()} not found in the virtual network. Are you calling this method after '_link_routers_best_path'?")
+
+            # Check if there is already a virtual interface with the same name
+            return any(vintf.name == interface_name for vintf in virt_router.get_virtual_interfaces())
+        
+        # Check if we have at least two routers to connect
+        if len(routers) < 2:
+            return 
+
+        # Create routers for each subnet
+        for src_router in routers:
+            # Get links to other network elements
+            for link in src_router.get_links():
+                # Get the link endpoint network element
+                dst_router = link.endpoint.entity
+
+                # If it is not a router, we can skip it!
+                if not isinstance(dst_router, Router):
+                    continue  
+                
+                # Get the interfaces used in the link
+                via_interface = link.interface
+                dst_interface = link.endpoint.interface
+
+                # Create names for the routers interfaces
+                src_intf_name = f"{src_router.get_name()}-{via_interface.get_name()}"
+                dst_intf_name = f"{dst_router.get_name()}-{dst_interface.get_name()}"
+
+                # If any of the interfaces is already used, we can skip this link as it has already been created
+                if is_interface_used(src_router, src_intf_name) or is_interface_used(dst_router, dst_intf_name):
+                    continue
+
+                # Connect the router to the previous one
+                self.addLink(
+                    src_router.get_name(),
+                    dst_router.get_name(), 
+                    intfName1=src_intf_name,
+                    params1={
+                        'ip': dst_interface.get_ip_with_prefix()
+                    },
+                    intfName2=dst_intf_name,
+                    params2={
+                        'ip': via_interface.get_ip_with_prefix()
+                    }
+                )
+
+                # Debug log that the link has been created
+                Logger().debug(f"\t * created alternative link: {src_router.get_name()}:{src_intf_name} <--> {dst_router.get_name()}:{dst_intf_name}")
+                Logger().debug(f"\t\t IP: {via_interface.get_ip_with_prefix()} <--> {dst_interface.get_ip_with_prefix()}")
+
+                # Find the virtual router objects and register the virtual interfaces
+                src = virtual_network.get(src_router.get_name())
+                dst = virtual_network.get(dst_router.get_name())
+                
+                # Check if actually they have been created
+                if src is None or dst is None:
+                    raise ValueError("Virtual routers not found in the virtual network object. This should not happen.")
+
+                # Create both virtual iterfaces
+                src_vintf = VirtualNetworkInterface(
+                    name=src_intf_name,
+                    physical_interface=via_interface
+                )
+                dst_vintf = VirtualNetworkInterface(
+                    name=dst_intf_name,
+                    physical_interface=dst_interface
+                )
+
+                # Register the virtual interfaces used in the link
+                src.add_virtual_interface(src_vintf)
+                dst.add_virtual_interface(dst_vintf)
+    
     def _link_hosts(self, subnets: list[Ipv4Subnet], virtual_network: VirtualNetwork):
         # Find subnets that interconnect hosts to routers
         for subnet in subnets:
