@@ -58,10 +58,13 @@ def compute_routers_shortest_path(routers: list[Router]):
         router = Q.get().item
         for link in router.get_links():
             if isinstance(link.endpoint.entity, Router): 
-                src_inte #FIXME: CONTINUE FROM HERE
+                src_interface = cast(RouterNetworkInterface, link.interface)
+                dst_interface = cast(RouterNetworkInterface, link.endpoint.interface)
+                                
                 # Get both source and destination interfaces
-                src_cost = cast(RouterNetworkInterface, link.interface).get_cost()
-                dst_cost = cast(RouterNetworkInterface, link.endpoint.interface).get_cost()
+                src_cost = src_interface.get_cost()
+                dst_cost = dst_interface.get_cost()
+
                 # Get the actual cost of the link
                 link_cost = max(src_cost, dst_cost)
                 
@@ -69,7 +72,7 @@ def compute_routers_shortest_path(routers: list[Router]):
                 alt = distance[router] + link_cost	
                 if alt < distance[link.endpoint.entity]:
                     distance[link.endpoint.entity] = alt
-                    previous[link.endpoint.entity] = RouterPathNode(router, link.interface, link_cost)
+                    previous[link.endpoint.entity] = RouterPathNode(router, src_interface, link_cost)
                     Q.put(PrioritizedItem(alt, link.endpoint.entity))
     
     # Return the distance and previous dictionaries
