@@ -9,6 +9,7 @@ from mininet.node import Node, Intf
 from mininet.clean import cleanup
 
 from modules.util.logger import Logger
+from modules.util.mininet import executeChainedCommands, executeCommand
 from modules.virtualization.mininet_types import LinuxRouter, VirtualNetworkTopology
 from modules.virtualization.network_elements import VirtualHost, VirtualNetwork, VirtualNetworkElement, VirtualNetworkInterface, VirtualRouter
 
@@ -39,7 +40,7 @@ def run_virtual_topology(network: NetworkTopology):
     net.start()
 
     Logger().debug("Configuring IP addresses of the remaining virtual interfaces...")
-
+                 
     # For each network element, configure the IP address of the virtual interfaces
     # FIXME: after implementing hosts this will become: network.get_routers() + network.get_hosts()
     for element in network.get_routers():
@@ -62,24 +63,18 @@ def run_virtual_topology(network: NetworkTopology):
         for intf in intfs:
             if not any(vintf.physical_interface.get_name() == intf.get_name() for vintf in vintfs):
                 intf_name = element.get_name() + "-" + intf.get_name()
-                Logger().debug(f"Configuring IP address: {intf.get_ip()}/{intf.get_subnet().get_prefix_length()} for interface {intf_name}")
+                Logger().debug(f"Creating missing virtual interface {intf_name} for element {element.get_name()}...")
 
-                
-                # Create virtual interface
-                # node.cmd(f"ip addr add {intf.get_ip()}/{intf.get_subnet().get_prefix_length()} type veth peer name {intf_name}")
-                # node.cmd(f"ip link set {intf.get_name()} netns {element.get_name()}")
-                # node.cmd(f"ip link set {intf.get_name()} up")
-
-                # Get interfaces
-                print(node.intfList())
-
-                # Create intf 
-                # node.addIntf(Intf(intf_name, node=node))
-                # node.setIP(intf.get_ip(), intf.get_subnet().get_prefix_length(), intf=intf_name)
+                # Create the virtual interface and set the related IP address
+                executeChainedCommands(node, [
+                    f"ip link add {intf_name} type veth",
+                    f"ifconfig {intf_name} {intf.get_ip()} netmask {intf.get_mask()}",
+                    f"ifconfig {intf.get_name()} up",
+                ])
 
                 # Register created interface in the virtual network object
-                # vintf = VirtualNetworkInterface(name=intf_name, physical_interface=intf)
-                # velement.add_virtual_interface(vintf)
+                vintf = VirtualNetworkInterface(name=intf_name, physical_interface=intf)
+                velement.add_virtual_interface(vintf)
                 
     # Create routing tables for the routers
     for virt_router in virtual_network.get_routers():
@@ -92,32 +87,11 @@ def run_virtual_topology(network: NetworkTopology):
         if node is None:
             raise ValueError(f"Router {virt_router.get_name()} not found in the virtual network. There is a problem with the network topology.")
  
-        # Create entries for each subnet this router can reach
-        for virt_intf in virt_router.get_virtual_interfaces():
-            # Compute the subnet IP with prefix
-            subnet_ip_with_prefix = f"{virt_intf.physical_interface.get_subnet().network_address()}/{virt_intf.physical_interface.get_subnet().get_prefix_length()}"
-            # Write the command to add the route to the routing table
-            command = f"ip route add {subnet_ip_with_prefix} dev {virt_intf.name}"
-            # Execute the command + check for output (output = error message)
-            asw = node.cmd(command)
-            if asw:
-                Logger().debug(f"\t - CMD: {command}, ERROR: {asw}")
-            else:
-                Logger().debug(f"\t - CMD: {command}, OK")
-        
         # Define which one is the default gateway for the router
         gateway = virt_router.get_gateway()
         if gateway:
-            cmd = f"ip route add default via {gateway.ip}"
             # Now, add default gateway for the router in order to be able to reach subnets outside the ones it is directly connected to
-            asw = node.cmd(cmd)
-            if asw:
-                Logger().debug(f"\t - CMD: {cmd}, ERROR: {asw}")
-            else:
-                Logger().debug(f"\t - CMD: {cmd}, OK")
-
-            # print(f"dev {gateway.interface.name} via {gateway.ip}")
-            # node.setDefaultRoute(f"dev {gateway.interface.name} via {gateway.ip}")
+            executeCommand(node, f"ip route add default via {gateway.ip}")
 
     # Start the Mininet CLI
     CLI(net)
