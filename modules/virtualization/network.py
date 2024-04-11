@@ -63,7 +63,7 @@ def run_virtual_topology(network: NetworkTopology):
                 intf_name = element.get_name() + "-" + intf.get_name()
                 Logger().debug(f"Creating missing virtual interface {intf_name} for element {element.get_name()} (will be kept down as it is not connected to any other element)...")
 
-                # # Create the virtual interface and set the related IP address
+                # Create the virtual interface and set the related IP address
                 executeChainedCommands(node, [
                     f"ip link add {intf_name} type veth",
                     f"ifconfig {intf_name} {intf.get_ip()} netmask {intf.get_mask()}",
