@@ -69,7 +69,7 @@ def run_virtual_topology(network: NetworkTopology):
                 executeChainedCommands(node, [
                     f"ip link add {intf_name} type veth",
                     f"ifconfig {intf_name} {intf.get_ip()} netmask {intf.get_mask()}",
-                    f"ifconfig {intf.get_name()} up",
+                    f"ifconfig {intf_name} up",
                 ])
 
                 # Register created interface in the virtual network object

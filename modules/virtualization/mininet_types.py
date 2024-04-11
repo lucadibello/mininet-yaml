@@ -5,6 +5,7 @@ from modules.models.topology import NetworkTopology
 from mininet.topo import Topo
 
 from modules.util.logger import Logger
+from modules.util.network import Ipv4Subnet
 from modules.virtualization.network_elements import Gateway, VirtualNetwork, VirtualNetworkInterface, VirtualRouter
 from modules.exploration.explore import compute_routers_shortest_path
 
@@ -38,6 +39,7 @@ class VirtualNetworkTopology(Topo):
         self._link_routers(network.get_routers(), virtual_network)
         
         # First of all, we need to create the virtual network by connecting together the virtual elements
+        self._link_hosts(network.get_subnets(), virtual_network)
         
         # Notify that the topology has been constructed
         Logger().info("The virtual network topology has been built.")
@@ -117,14 +119,32 @@ class VirtualNetworkTopology(Topo):
                 physical_interface=previous_router_link.destination_interface
             )
 
-
             # Register the virtual interfaces used in the link
             src.add_virtual_interface(src_vintf)
             dst.add_virtual_interface(dst_vintf)
-
 
             # Set gateway for the source router: any subnet that it cannot reach will be sent to the destination router
             src.set_gateway(Gateway(
                 ip=previous_router_link.destination_interface.get_ip(),
                 via_interface_name=src_vintf.name
             ))
+
+    def _link_hosts(self, subnets: list[Ipv4Subnet], virtual_network: VirtualNetwork):
+        # Find subnets that interconnect hosts to routers
+        for subnet in subnets:
+            tot_hosts = len(subnet.get_hosts())
+            tot_routers = len(subnet.get_routers())
+
+            # If there are no hosts, this means that this subnet is used between routers. We can ignore it.
+            if tot_hosts == 0:
+                continue
+
+            # Now that we have found a valid subnet, we must ensure that there is a router connected to it
+            if tot_routers == 0:
+                Logger().warning(f"No router present in subnet {subnet.network_address()}/{subnet.get_prefix_length()}. Cannot connect its hosts to the virtual network.")
+
+            # Now, if we have only one host, we can connect it directly to the router without a switch
+            if tot_hosts == 1:
+                print("TODO: connect host directly to router")
+            else:
+                print("TODO: connect host to switch and switch to router")
