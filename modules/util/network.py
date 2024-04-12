@@ -1,5 +1,12 @@
 from typing import Sequence
-from modules.models.network_elements import Host, Link, NetworkElement, NetworkInterface, Router
+from modules.models.network_elements import (
+    Host,
+    Link,
+    NetworkElement,
+    NetworkInterface,
+    Router,
+)
+
 
 class Ipv4Network:
     def __init__(self, ip: str, mask: str):
@@ -11,6 +18,7 @@ class Ipv4Network:
         This method returns the IP address of the subnet.
         """
         return self._ip
+
     def get_mask(self) -> str:
         """
         This method returns the subnet mask of the subnet.
@@ -39,6 +47,7 @@ class Ipv4Network:
         """
         return a.network_address() == b.network_address()
 
+
 class Ipv4Subnet(Ipv4Network):
     def __init__(self, ip: str, mask: str):
         # Construct the Ipv4Network object
@@ -52,8 +61,8 @@ class Ipv4Subnet(Ipv4Network):
         """
         This method creates an Ipv4Subnet object from a NetworkInterface object.
         """
-        return Ipv4Subnet(Ipv4Network(local_ip, mask).network_address(), mask) 
-    
+        return Ipv4Subnet(Ipv4Network(local_ip, mask).network_address(), mask)
+
     def add_host(self, host_endpoint: Link.Endpoint):
         """
         Host method adds an Host to the subnet.
@@ -71,7 +80,7 @@ class Ipv4Subnet(Ipv4Network):
         This method returns the list of clients that are part of this subnet.
         """
         return self._hosts + self._routers
-    
+
     def get_hosts(self) -> list[Link.Endpoint]:
         """
         This method returns the list of hosts that are part of this subnet.
@@ -83,21 +92,25 @@ class Ipv4Subnet(Ipv4Network):
         This method returns the list of routers that are part of this subnet.
         """
         return self._routers
-    
+
     def get_prefix_length(self) -> int:
-        return sum([bin(int(x)).count('1') for x in self._mask.split('.')])
-    
+        return sum([bin(int(x)).count("1") for x in self._mask.split(".")])
+
     def get_next_management_ip(self) -> str:
         """
         This method returns the next available IP address for management.
         """
+
         def get_last_octet(ip: str) -> int:
             return int(ip.split(".")[-1])
-        
+
         # Starting from .254, find the first available IP address
         for i in range(254, 0, -1):
             ip = f"{self.network_address()[0:self.network_address().rfind('.')]}.{i}"
-            if not any(get_last_octet(client.interface.get_ip()) == i for client in self.get_clients()):
+            if not any(
+                get_last_octet(client.interface.get_ip()) == i
+                for client in self.get_clients()
+            ):
                 return ip
         raise ValueError("No available IP addresses for management")
 
@@ -106,7 +119,7 @@ class Ipv4Subnet(Ipv4Network):
 
     def __repr__(self) -> str:
         return self.__str__()
-    
+
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Ipv4Subnet):
             return False
@@ -114,7 +127,7 @@ class Ipv4Subnet(Ipv4Network):
 
 
 def does_link_exist(
-        a: NetworkElement, b: NetworkElement
+    a: NetworkElement, b: NetworkElement
 ) -> tuple[bool, list[tuple[NetworkInterface, NetworkInterface]]]:
     """
     This function checks if two network elements are linked together in the network topology.
@@ -133,8 +146,7 @@ def does_link_exist(
         network_a = Ipv4Network(interface_a.get_ip(), interface_a.get_mask())
 
         for interface_b in b.get_interfaces():
-            network_b = Ipv4Network(
-                interface_b.get_ip(), interface_b.get_mask())
+            network_b = Ipv4Network(interface_b.get_ip(), interface_b.get_mask())
 
             # Ensure that both networks can communicate with each other
             if Ipv4Network.can_communicate(network_a, network_b):

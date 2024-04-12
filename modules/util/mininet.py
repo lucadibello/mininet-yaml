@@ -12,6 +12,7 @@ def executeCommand(node: Node, command: str) -> bool:
         Logger().debug(f"\t - CMD: {command}, OK")
         return True
 
+
 def executeChainedCommands(node: Node, commands: list) -> bool:
     for command in commands:
         if not executeCommand(node, command):

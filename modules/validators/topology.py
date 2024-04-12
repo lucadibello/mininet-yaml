@@ -133,8 +133,7 @@ def validate_routers(data: dict[str, dict]) -> Tuple[list[Router], bool, str]:
                 return [], False, f"{msg} (router {name})"
 
             # Validate fields
-            status, msg = _validate_router_network_interface_details(
-                interface_details)
+            status, msg = _validate_router_network_interface_details(interface_details)
             if not status:
                 return [], False, f"{msg} (router {name}, interface {interface_name})"
 
@@ -197,8 +196,7 @@ def validate_hosts(data: dict[str, dict]) -> Tuple[list[Host], bool, str]:
                 return [], False, f"{msg} (host {name})"
 
             # Validate fields
-            status, msg = _validate_network_interface_details(
-                interface_details)
+            status, msg = _validate_network_interface_details(interface_details)
             if not status:
                 return [], False, f"{msg} (host {name}, interface {interface_name})"
 
@@ -223,15 +221,11 @@ def validate_network_configuration(
     ip_addresses = []
     masks = []
     for router in routers:
-        ip_addresses.extend(interface.get_ip()
-                            for interface in router.get_interfaces())
-        masks.extend(interface.get_mask()
-                     for interface in router.get_interfaces())
+        ip_addresses.extend(interface.get_ip() for interface in router.get_interfaces())
+        masks.extend(interface.get_mask() for interface in router.get_interfaces())
     for host in hosts:
-        ip_addresses.extend(interface.get_ip()
-                            for interface in host.get_interfaces())
-        masks.extend(interface.get_mask()
-                     for interface in host.get_interfaces())
+        ip_addresses.extend(interface.get_ip() for interface in host.get_interfaces())
+        masks.extend(interface.get_mask() for interface in host.get_interfaces())
 
     # Check for duplicate IP addresses
     if len(ip_addresses) != len(set(ip_addresses)):

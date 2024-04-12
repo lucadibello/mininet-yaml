@@ -44,9 +44,7 @@ class Logger(metaclass=Singleton):
             ch.setLevel(logging.DEBUG)
 
         # Create a formatter and set the formatter for the handlers
-        formatter = logging.Formatter(
-            "%(asctime)s - %(levelname)s - %(message)s"
-        )
+        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
         fh.setFormatter(formatter)
         ch.setFormatter(formatter)
 

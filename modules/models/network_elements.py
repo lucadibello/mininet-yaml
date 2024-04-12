@@ -9,6 +9,7 @@ class NetworkInterface:
         self._mask = mask
         # Import required modules
         from modules.util.network import Ipv4Subnet
+
         # Create the subnet if the IP and mask are provided
         if ip and mask:
             self._subnet = Ipv4Subnet.create_from(ip, mask)
@@ -29,27 +30,31 @@ class NetworkInterface:
 
     def get_ip_with_prefix(self):
         return self._ip + "/" + str(self.get_prefix_length())
-    
+
     def get_subnet(self):
         return self._subnet
-    
+
     def is_used(self):
         return self._used
-    
+
     def set_used(self, used: bool):
         self._used = used
-
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, NetworkInterface):
             return False
-        return self._name == value._name and self._ip == value._ip and self._mask == value._mask
+        return (
+            self._name == value._name
+            and self._ip == value._ip
+            and self._mask == value._mask
+        )
 
     def __str__(self):
         return f"Interface(name={self._name}, subnet=({self._ip}/{self._mask}))"
 
     def __repr__(self):
         return self.__str__()
+
 
 class SwitchInterface(NetworkInterface):
     """
@@ -58,6 +63,7 @@ class SwitchInterface(NetworkInterface):
 
     def __init__(self, name: str):
         super().__init__(name, "", "")
+
 
 class RouterNetworkInterface(NetworkInterface):
     """
@@ -86,14 +92,15 @@ class RouterNetworkInterface(NetworkInterface):
         self._cost = cost
 
 
-class Link():
-
-    class Endpoint():
+class Link:
+    class Endpoint:
         """
         This class represents an endpoint of a link. It contains the network element and the interface.
         """
 
-        def __init__(self, entity: "NetworkElement", interface: NetworkInterface) -> None:
+        def __init__(
+            self, entity: "NetworkElement", interface: NetworkInterface
+        ) -> None:
             self._entity = entity
             self._interface = interface
 
@@ -199,4 +206,3 @@ class Host(NetworkElement):
 
     def __repr__(self):
         return self.__str__()
-
