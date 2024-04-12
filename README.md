@@ -2,8 +2,8 @@
 
 <p align="center">
 	<picture>
-		<source media="(prefers-color-scheme: dark)" srcset="./docs/assets/logo/logo-light.svg">
-		<source media="(prefers-color-scheme: light)" srcset="./docs/assets/logo/logo-dark.svg">
+		<source media="(prefers-color-scheme: dark)" srcset="./docs/assets/logo/logo-dark.svg">
+		<source media="(prefers-color-scheme: light)" srcset="./docs/assets/logo/logo-light.svg">
 		<img alt="Mininet-YAML logo" src="./doc/logo/logo-light.svg" />
 	</picture>
 </p>
