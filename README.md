@@ -1,5 +1,16 @@
 # Mininet-YAML <!-- omit in toc -->
 
+<p align="center">
+	<picture>
+		<source media="(prefers-color-scheme: dark)" srcset="./docs/assets/logo/logo-light.png">
+		<source media="(prefers-color-scheme: light)" srcset="./docs/assets/logo/logo-dark.png">
+		<img alt="Mininet-YAML logo" src="./doc/logo/logo-light.png" />
+	</picture>
+</p>
+
+<p align="center"><strong>🛜 Instantly Create and Manage Virtual Networks through Simple YAML Configurations</strong></p>
+
+
 ## Introduction
 
 Mininet-YAML is a powerful tool that simplifies the creation of virtual networks through YAML-configured topologies. By defining hosts, routers, and their interfaces in a YAML file, users can deploy complex network topologies within seconds. This tool integrates with [Mininet](https://mininet.org/) to emulate network environments, allowing users to manage virtual nodes with the same granularity as physical hardware.
@@ -21,6 +32,26 @@ Mininet-YAML is a powerful tool that simplifies the creation of virtual networks
 ## Getting started
 
 Please, refer to the [Getting Started](./docs/getting-started.md) guide to learn how to install the tool and run your first network.
+
+## Tool usage
+
+Via `emulation.py`, users can either draw the network topology as a graph or create a virtual network leveraging Mininet. The tool accepts the following arguments:
+
+```text
+usage: emulation.py [-h] [-d] [-l LOG] [-v] [-s] definition
+
+This tool is able to read a network definition from a YAML file and either draw the network topology as a graph or create a virtual network leveraging Mininet.
+
+positional arguments:
+  definition         path to the YAML file containing the network definition
+
+options:
+  -h, --help         show this help message and exit
+  -d, --draw         output to stdout the router topology as a graph in graphviz format
+  -l DIR, --log DIR  directory to store the log files
+  -v, --verbose      enable verbose logging
+  -s, --silent       disable all logging to stdout, except for critical errors
+```
 
 ## Defining Topologies
 
@@ -52,3 +83,7 @@ hosts:
 - **Education**: Demonstrate networking concepts interactively, giving students hands-on experience with network management.
 - **Development**: Design and test network applications in a safe and controlled virtual environment.
 - **Research**: Explore and test new networking protocols or configurations with ease.
+
+## Examples
+
+In the directory [`examples`](./examples), you can find some YAML files that define different network topologies. You can use them to test the tool and understand how to define your own network.
