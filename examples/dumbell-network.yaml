@@ -1,0 +1,55 @@
+#
+# This yaml file describes a simple dumbell network with two routers (r1 and r2) and 3 hosts per side.
+#
+# The network topology is as follows:
+#
+# (h1,h2,h3) --- r1 --- r2 --- (h4,h5,h6)
+#
+
+routers:
+  # Router 1 - left side of the dumbell
+  r1:
+    # Interface where users connect to
+    eth0:
+      address: 192.168.0.1
+      mask: 255.255.255.252
+
+    # Intra-router interface
+    eth1:
+      address: 10.0.2.1
+      mask: 255.255.255.0
+    
+  # Router 2 - right side of the dumbell
+  r2:
+    # Intra-router interface
+    eth0:
+      address: 10.0.2.2
+      mask: 255.255.255.0
+
+    # Interface where other users can connect to
+    eth1:
+      address: 192.168.1.1
+      mask: 255.255.255.0    
+
+hosts:
+  # The left side of the dumbell
+  h1:
+    eth0:
+      address: 192.168.0.100
+  h2:
+    eth0:
+      address: 192.168.0.101
+  h3:
+    eth0:
+      address: 192.168.0.102
+
+  # Right side of the dumbell
+  h4:
+    eth0:
+      address: 192.168.1.100
+  h5:
+    eth0:
+      address: 192.168.1.101
+  h6:
+    eth0:
+      address: 192.168.1.102

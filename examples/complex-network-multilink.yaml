@@ -1,3 +1,14 @@
+#
+# This yaml file describes a more complex network with three routers (r1, r2, and r3) and 4 hosts. In this case,
+# the routers have multiple possible interfaces to connect to other routers or hosts. The underlying algorithm will
+# automatically determine the best connection between routers and hosts based on the cost of the connection, and setup
+# failover paths in case of link failures.
+#
+# The virtual network emulator will also propagate the routing tables between routers, so that all routers know how to
+# reach all hosts in the network.
+#
+
+
 routers:
   r1:
     eth0:
