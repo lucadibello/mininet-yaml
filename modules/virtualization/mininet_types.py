@@ -140,6 +140,17 @@ class VirtualNetworkTopology(Topo):
                     ip=previous_router_link.via_interface.get_ip(),
                     via_interface_name=dst_vintf.name
                 ))
+            
+            # Now, add to the current router all the routes that the previous router has in order to reach the subnets
+            for dst_vintf in dst.get_virtual_interfaces():
+                if not any(dst_vintf.physical_interface.get_subnet() == subnet for subnet, _ in src.get_routes()):
+                    # This means that the current router will not be able to know any details about this subnet
+                    # as it does not have any direct link to it. For this reason, we register the route to the subnet
+                    src.add_route(
+                        dst_vintf.physical_interface.get_subnet(),
+                        src_vintf # This subnet is reachable via the link we have just created!
+                    )
+                
 
     def _link_router_alternative_paths(self, routers: list[Router], virtual_network: VirtualNetwork):
         # This helper method allows to check if there is already a link that uses the same interface

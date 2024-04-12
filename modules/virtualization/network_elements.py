@@ -4,6 +4,8 @@ from modules.models.network_elements import Router, NetworkInterface, NetworkEle
 from mininet.node import Node
 from mininet.net import Mininet
 
+from modules.util.network import Ipv4Subnet
+
 class VirtualNetworkInterface():
     def __init__(self, name: str, physical_interface: NetworkInterface):
         self._name = name
@@ -34,6 +36,7 @@ class VirtualNetworkElement():
         self._physical_element = physical_element
         self._virtual_interfaces = list[VirtualNetworkInterface]()
         self._gateway: Optional[Gateway] = None
+        self._routes = list[tuple[Ipv4Subnet, VirtualNetworkInterface]]()
     
     def get_name(self) -> str:
         return self._physical_element.get_name()
@@ -52,6 +55,12 @@ class VirtualNetworkElement():
 
     def get_gateway(self) -> Optional[Gateway]:
         return self._gateway
+
+    def add_route(self, subnet: Ipv4Subnet, interface: VirtualNetworkInterface):
+        self._routes.append((subnet, interface))
+
+    def get_routes(self) -> list[tuple[Ipv4Subnet, VirtualNetworkInterface]]:
+        return self._routes
 
 #
 # Specialized classes for (possible) future extensions
