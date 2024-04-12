@@ -1,12 +1,14 @@
 # Mininet-YAML <!-- omit in toc -->
 
-<p align="center">
-	<picture>
-		<source media="(prefers-color-scheme: dark)" srcset="./docs/assets/logo/logo-dark.svg">
-		<source media="(prefers-color-scheme: light)" srcset="./docs/assets/logo/logo-light.svg">
-		<img alt="Mininet-YAML logo" src="./doc/logo/logo-light.svg" />
-	</picture>
-</p>
+<div style="width: 100%; display: block;">
+    <p align="center">
+        <picture>
+            <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/logo/logo-dark.svg">
+            <source media="(prefers-color-scheme: light)" srcset="./docs/assets/logo/logo-light.svg">
+            <img alt="Mininet-YAML logo" src="./doc/logo/logo-light.svg" />
+        </picture>
+    </p>
+</div>
 
 <p align="center"><strong>🛜 Instantly Create and Manage Virtual Networks through Simple YAML Configurations</strong></p>
 
