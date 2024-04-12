@@ -1,26 +1,54 @@
-# Mininet-YAML
+# Mininet-YAML <!-- omit in toc -->
 
-This small tool allows creating virtual network using [Mininet](https://mininet.org/) by providing a network topology description in YAML format.
+## Introduction
+
+Mininet-YAML is a powerful tool that simplifies the creation of virtual networks through YAML-configured topologies. By defining hosts, routers, and their interfaces in a YAML file, users can deploy complex network topologies within seconds. This tool integrates with [Mininet](https://mininet.org/) to emulate network environments, allowing users to manage virtual nodes with the same granularity as physical hardware.
+
+## Features
+
+- **Rapid Network Deployment**: Generate a complete virtual network from a YAML file, automating connections and configurations.
+- **Intuitive Topology Visualization**: Outputs a visual representation of your network in Graphviz format directly to your terminal.
+- **Routing Tables Propagation**: Automatically configures routing tables and propagates them across the network in order to enable communication between all nodes.
+- **Multi-interface Nodes**: Supports complex setups with hosts and routers having multiple network interfaces.
+- **Link cost configuration**: Allows users to set the cost of a particular interface, an information used by the routing algorithm to determine the best path.
+- **Error Handling**: Provides detailed error messages during YAML file validation, virtual network creation, and runtime.
+- **Fine-grained logging and silent mode**: Offers verbose logging for debugging purposes and a silent mode to suppress output (useful for scripting).
+- **Interactive CLI**: Offers a command-line interface to interact with network elements, enhancing manual testing and management.
+- **Custom Commands and scripts**: Allows users to run custom commands and scripts directly on virtual nodes.
+- **GUI Application Support**: Enables X11 forwarding to launch and use GUI-based applications on virtual hosts as if they were physical machines.
+- **Extensive Command Execution**: Facilitates running network diagnostic tools like `ping`, `traceroute`, and `wireshark` within virtual nodes.
 
 ## Getting started
 
-First of all, you need to install `Mininet` on your system. Follow the instructions [here](./docs/install.md).
+Please, refer to the [Getting Started](./docs/getting-started.md) guide to learn how to install the tool and run your first network.
 
-Then you need to install the required Python packages. You can do this by running the following command:
+## Defining Topologies
 
-```bash
-pip install -r requirements.txt
+Below is the structure required in the YAML file to define your network's topology:
+
+```yaml
+routers:
+  [router_name]:
+    [interface_name]:
+      address: [ipv4_ip_address]
+      mask: [subnet_mask]
+      cost: [cost, default=1]
+    ...
+
+hosts:
+  [host_name]:
+    [interface_name]:
+      address: [ip_address]
+      mask: [subnet_mask]
+    [interface_name]:
+      address: [ip_address]
+      mask: [subnet_mask]
+    ...
 ```
 
-Finally, you can run the tool by providing the path to the YAML e file with the network topology description. For example:
+## Use cases
 
-```bash
-python main.py topology.example.yaml
-```
-
-## Things to do
-
-- [ ] Add default gateway to the hosts (hosts have only one interface, so the default gateway is the first one)
-- [ ] Create algorithm that chooses which interface to connect to the switch and which to other routers
-- [ ] Configure routing tables in the Routers (static routing)
-- [ ] Rename switches ports properly: switch connection to router = `s-eth0`, host input ports = `s-eth<N_HOST>`
+- **Testing**: Verify network configurations and experiment with different topologies without physical setups.
+- **Education**: Demonstrate networking concepts interactively, giving students hands-on experience with network management.
+- **Development**: Design and test network applications in a safe and controlled virtual environment.
+- **Research**: Explore and test new networking protocols or configurations with ease.
