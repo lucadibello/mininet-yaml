@@ -76,7 +76,7 @@ def run_virtual_topology(network: NetworkTopology):
                 
     # Add default gateway for each element
     for virt_element in virtual_network.get_routers() + virtual_network.get_hosts():
-        Logger().debug(f"Configuring default gateway for element {virt_element.get_name()}")
+        Logger().debug(f"Configuring routing table for element {virt_element.get_name()}")
         # Get mininet node
         node = net.get(virt_element.get_name())
         # cast to Node type (as Mininet does not specify any return type...)
@@ -88,14 +88,16 @@ def run_virtual_topology(network: NetworkTopology):
         gateway = virt_element.get_gateway()
         if gateway:
             # Now, add default gateway for the element in order to be able to reach subnets outside the ones it is directly connected to
-            executeCommand(node, f"ip route add default via {gateway.ip}")
+            executeCommand(node, f"ip route add default via {gateway.ip}") 
         else:
-            Logger().debug(f"\t [!] element {virt_element.get_name()} does not have a default gateway defined.")
+            Logger().debug(f"\t [!] element {virt_element.get_name()} does not have a default gateway defined.") 
         
         # Now, for each route, add the corresponding route to the routing table
-        for subnet, interface in virt_element.get_routes():
-            # Add the route to the routing table
-            executeCommand(node, f"ip route add {subnet.network_address()}/{subnet.get_prefix_length()} dev {interface.name}")
+        for route in virt_element.get_routes():
+            # For each unregistered route, add the route to the routing table
+            if not route.is_registered:
+                # Add the route to the routing table
+                executeCommand(node, f"ip route add {route.subnet.network_address()}/{route.subnet.get_prefix_length()} via {route.dst_interface.physical_interface.get_ip()} dev {route.via_interface.name}")
  
     # Start the Mininet CLI
     CLI(net)

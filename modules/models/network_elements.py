@@ -9,8 +9,9 @@ class NetworkInterface:
         self._mask = mask
         # Import required modules
         from modules.util.network import Ipv4Subnet
-        # Create the subnet
-        self._subnet = Ipv4Subnet.create_from(ip, mask)
+        # Create the subnet if the IP and mask are provided
+        if ip and mask:
+            self._subnet = Ipv4Subnet.create_from(ip, mask)
         # Flag that indicates if the interface is used
         self._used = False
 
@@ -50,6 +51,13 @@ class NetworkInterface:
     def __repr__(self):
         return self.__str__()
 
+class SwitchInterface(NetworkInterface):
+    """
+    This class represents a network interface of a switch.
+    """
+
+    def __init__(self, name: str):
+        super().__init__(name, "", "")
 
 class RouterNetworkInterface(NetworkInterface):
     """

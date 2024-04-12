@@ -36,7 +36,7 @@ class VirtualNetworkElement():
         self._physical_element = physical_element
         self._virtual_interfaces = list[VirtualNetworkInterface]()
         self._gateway: Optional[Gateway] = None
-        self._routes = list[tuple[Ipv4Subnet, VirtualNetworkInterface]]()
+        self._routes = list[Route]()
     
     def get_name(self) -> str:
         return self._physical_element.get_name()
@@ -56,10 +56,10 @@ class VirtualNetworkElement():
     def get_gateway(self) -> Optional[Gateway]:
         return self._gateway
 
-    def add_route(self, subnet: Ipv4Subnet, interface: VirtualNetworkInterface):
-        self._routes.append((subnet, interface))
+    def add_route(self, route: "Route"):
+        self._routes.append(route)
 
-    def get_routes(self) -> list[tuple[Ipv4Subnet, VirtualNetworkInterface]]:
+    def get_routes(self) -> list["Route"]:
         return self._routes
 
 #
@@ -123,3 +123,32 @@ class VirtualNetwork:
 
     def get_switches(self) -> list[VirtualNetworkElement]:
         return self._virtual_switches
+
+class Route():
+    def __init__(self, subnet: Ipv4Subnet, via_interface: VirtualNetworkInterface, to_element: VirtualNetworkElement, dst_interface: VirtualNetworkInterface, is_registered=True) -> None:
+        self._subnet = subnet
+        self._via_interface = via_interface
+        self._to_element = to_element
+        self._dst_interface = dst_interface
+        self._is_registered = is_registered
+    
+    @property
+    def subnet(self) -> Ipv4Subnet:
+        return self._subnet
+        
+    @property
+    def via_interface(self) -> VirtualNetworkInterface:
+        return self._via_interface
+        
+    @property
+    def to_element(self) -> VirtualNetworkElement:
+        return self._to_element
+        
+    @property
+    def dst_interface(self) -> VirtualNetworkInterface:
+        return self._dst_interface
+
+    @property
+    def is_registered(self) -> bool:
+        return self._is_registered
+    

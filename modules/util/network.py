@@ -106,6 +106,11 @@ class Ipv4Subnet(Ipv4Network):
 
     def __repr__(self) -> str:
         return self.__str__()
+    
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Ipv4Subnet):
+            return False
+        return self._ip == other._ip and self._mask == other._mask
 
 
 def does_link_exist(
