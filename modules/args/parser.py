@@ -19,14 +19,14 @@ class ArgParser:
         self._parser.add_argument(
             "-d",
             "--draw",
-            help="output to stdout the router topology as a graph in graphviz format",
+            help="output the router topology as an undirected graph in Graphviz format",
             action="store_true",
         )
         # Log directory
         self._parser.add_argument(
             "-l",
             "--log",
-            help="directory to store the log files",
+            help="specify the directory where the log file will be saved (default: logs/)",
             # Custom validator that checks if the directory exists and is writable
             action=ValidateDirectoryPath,
             required=False,

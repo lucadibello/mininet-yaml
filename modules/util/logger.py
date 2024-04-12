@@ -11,7 +11,7 @@ class Logger(metaclass=Singleton):
     Singleton class that creates a logger object that logs to a file and the console.
     """
 
-    def __init__(self, dir: str = "log", debug: bool = False, is_silent: bool = False):
+    def __init__(self, dir: str = "logs", debug: bool = False, is_silent: bool = False):
         if not isinstance(dir, str):
             raise TypeError("the directory must be a string.")
 
