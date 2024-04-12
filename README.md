@@ -42,15 +42,16 @@ Via `emulation.py`, users can either draw the network topology as a graph or cre
 ```text
 usage: emulation.py [-h] [-d] [-l LOG] [-v] [-s] definition
 
-This tool is able to read a network definition from a YAML file and either draw the network topology as a graph or create a virtual network leveraging Mininet.
+This tool is able to read a network definition from a YAML file and either draw the network topology as a graph or
+create a virtual network leveraging Mininet.
 
 positional arguments:
   definition         path to the YAML file containing the network definition
 
 options:
   -h, --help         show this help message and exit
-  -d, --draw         output to stdout the router topology as a graph in graphviz format
-  -l DIR, --log DIR  directory to store the log files
+  -d, --draw         output the router topology as an undirected graph in Graphviz format
+  -l LOG, --log LOG  specify the directory where the log file will be saved (default: logs/)
   -v, --verbose      enable verbose logging
   -s, --silent       disable all logging to stdout, except for critical errors
 ```
