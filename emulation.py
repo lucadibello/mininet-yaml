@@ -18,7 +18,7 @@ def main():
 
     # Initialize logger singleton with passed settings
     Logger(debug=is_verbose, is_silent=is_silent) if not log_dir else Logger(
-        log_dir, debug=is_verbose
+        log_dir, debug=is_verbose, is_silent=is_silent
     )
 
     Logger().debug(f"Reading the network topology from the file: {file_path}")
@@ -34,7 +34,6 @@ def main():
         if must_draw:
             Logger().debug("Drawing the network topology...")
             graph = topology.draw()
-            # raise(NotImplementedError("Drawing is not implemented yet."))
             Logger().info(
                 "Topology graph generated correctly. Output is displayed below."
             )
