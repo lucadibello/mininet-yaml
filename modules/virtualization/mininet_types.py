@@ -468,16 +468,10 @@ class VirtualNetworkTopology(Topo):
             # Identify all the routes that can be reached from this router from the routes
             routes_to_routers = [route for route in src_virtual_router.get_routes() if isinstance(route.to_element, VirtualRouter)]
 
-            # Print the routes of the router
-            print(f"Router {src_router.get_name()} can reach other routers via the following routes:")
-            for route in routes_to_routers:
-                print(f"\t{route.subnet.network_address()} via {route.via_interface.name} --> {route.to_element.get_name()} on {route.dst_interface.name}")
-
             # For each destination router, we need to propagate the routes that can be reached only from the src_router and not from the dst_router
             for route_to_router in routes_to_routers:
                 # Identify routes that are not present in the router we are propagating the routes to
                 router_target = route_to_router.to_element
-                print(f"Propagation: {src_router.get_name()} --> {router_target.get_name()}")
 
                 # Identify also the routes we need to propagate to the target router
                 dst_missing_routes = list[Route]()
@@ -493,15 +487,6 @@ class VirtualNetworkTopology(Topo):
                 for route in router_target.get_routes():
                     if route.to_element == src_virtual_router:
                         possible_routes.append(route)
-                
-                print(f"Possible routes from {src_router.get_name()} to {router_target.get_name()}:")
-                for route in possible_routes:
-                    print(f"\t{route.subnet.network_address()} via {route.dst_interface.name} --> {route.to_element.get_name()} on {route.via_interface.name}")
-                    
-                # Print the routes we will propagate (before altering them to match the new router configuration)
-                print(f"Routes to propagate to router {router_target.get_name()}:")
-                for route in dst_missing_routes:
-                    print(f"\t{route.subnet.network_address()} via {route.via_interface.name} to {route.to_element.get_name()} on interface {route.dst_interface.name}")
 
                 # We need to add the missing routes to the destination router BUT we need to change the "via interface" to the one that connects dst_router to src_router via the link
                 for dst_missing_route in dst_missing_routes:
@@ -518,4 +503,3 @@ class VirtualNetworkTopology(Topo):
                         )
                         # Register the new route in the target router
                         router_target.add_route(new_route)
-                        print(f"Added route: {new_route.subnet.network_address()} via {new_route.via_interface.name} to {new_route.to_element.get_name()} on interface {new_route.dst_interface.name}")

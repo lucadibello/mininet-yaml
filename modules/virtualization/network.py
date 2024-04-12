@@ -61,7 +61,7 @@ def run_virtual_topology(network: NetworkTopology):
         for intf in intfs:
             if not any(vintf.physical_interface.get_name() == intf.get_name() for vintf in vintfs):
                 intf_name = element.get_name() + "-" + intf.get_name()
-                Logger().debug(f"Creating missing virtual interface {intf_name} for element {element.get_name()} (will be kept down as it is not connected to any other element)...")
+                Logger().warning(f"Interface {intf_name} of element {element.get_name()} is not used in any link. It will be created but kept down to avoid routing problems.")
 
                 # Create the virtual interface and set the related IP address
                 executeChainedCommands(node, [
