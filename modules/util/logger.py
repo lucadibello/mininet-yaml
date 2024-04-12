@@ -8,7 +8,7 @@ from modules.util.singleton import Singleton
 
 class Logger(metaclass=Singleton):
     """
-    Sigleton class that creates a logger object that logs to a file and the console.
+    Singleton class that creates a logger object that logs to a file and the console.
     """
 
     def __init__(self, dir: str = "log", debug: bool = False, is_silent: bool = False):
