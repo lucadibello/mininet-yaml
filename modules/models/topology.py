@@ -200,7 +200,7 @@ class NetworkTopology:
                 f'label="{cost}", '
                 "\n\t\tfontsize=8, "
                 f"\n\t\tlabeldistance={label_distance}, "
-                f'\n\t\theadlabel=" {source.interface.get_name()}", '
+                f'\n\t\theadlabel="{source.interface.get_name()}", '
                 f'\n\t\ttaillabel="{destination.interface.get_name()}", '
                 '\n\t\tstyle="solid", '
                 "\n\t\tcolor=black, "
