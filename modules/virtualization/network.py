@@ -26,10 +26,6 @@ def run_virtual_topology(network: NetworkTopology):
 			network=network, # pass decoded network topology
 			virtual_network=virtual_network # pass store for virtual network elements (Mininet nodes + their virtual interfaces)
 		),
-		controller=None,
-		build=True,
-		autoSetMacs=True,
-		waitConnected=False, # We are not using a controller, so we don't need to wait for switches to connect
 	)
 	# Link the virtual network to the virtual network object
 	virtual_network.set_network(net)
