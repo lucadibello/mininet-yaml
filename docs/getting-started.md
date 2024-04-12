@@ -13,6 +13,17 @@ First of all, you need to install `Mininet` on your system. Follow the instructi
 
 Then, we need to install also `Open vSwitch` on your system. Follow the instructions [here](./docs/install-ovs.md).
 
+## Step 2: Clone the repository
+
+You can clone the repository using `git`:
+
+```bash
+# With SSH
+git clone git@github.com:lucadibello/mininet-yaml.git && cd mininet-yaml
+# With HTTPS
+git clone https://github.com/lucadibello/mininet-yaml.git && cd mininet-yaml
+```
+
 ## Step 2: Install python requirements
 
 To install the required Python packages, you can either use `pip` (to install the packages globally) or use `conda` (preferred method) to create a virtual environment and install the packages locally.
@@ -21,7 +32,7 @@ Option A: Using `conda`:
 
 ```bash
 # Create virtual environment + install packages
-conda env create --file=environments.yml
+conda env create --file=environment.yml
 # Activate the virtual environment
 conda activate mininet-yaml
 ```
