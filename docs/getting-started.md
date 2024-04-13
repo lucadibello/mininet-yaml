@@ -9,9 +9,9 @@ This guide will help you to install the tool and run your first network.
 
 ## Step 1: Install Mininet and Open vSwitch
 
-First of all, you need to install `Mininet` on your system. Follow the instructions [here](./docs/install-mininet.md).
+First of all, you need to install `Mininet` on your system. Follow the instructions [here](./install-mininet.md).
 
-Then, we need to install also `Open vSwitch` on your system. Follow the instructions [here](./docs/install-ovs.md).
+Then, we need to install also `Open vSwitch` on your system. Follow the instructions [here](./install-ovs.md).
 
 ## Step 2: Clone the repository
 
