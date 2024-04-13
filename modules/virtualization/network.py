@@ -1,5 +1,5 @@
 from typing import Optional, cast
-from modules.models.network_elements import NetworkElement
+from modules.models.network_elements import NetworkElement, RouterNetworkInterface
 from modules.models.topology import NetworkTopology
 
 from mininet.net import Mininet
@@ -11,6 +11,7 @@ from modules.util.logger import Logger
 from modules.util.mininet import executeChainedCommands, executeCommand
 from modules.virtualization.mininet_types import VirtualNetworkTopology
 from modules.virtualization.network_elements import (
+    Route,
     VirtualNetwork,
     VirtualNetworkInterface,
 )
@@ -109,22 +110,50 @@ def run_virtual_topology(network: NetworkTopology):
         # Define which one is the default gateway for the network element
         gateway = virt_element.get_gateway()
         if gateway:
+            Logger().debug("\t * setting shortest path as default gateway...")
             # Now, add default gateway for the element in order to be able to reach subnets outside the ones it is directly connected to
             executeCommand(node, f"ip route add default via {gateway.ip}")
         else:
             Logger().debug(
                 f"\t [!] element {virt_element.get_name()} does not have a default gateway defined."
             )
-
-        # Now, for each route, add the corresponding route to the routing table
+        
+        # Group routes by destination subnet
+        routes = dict[str, list[Route]]()
         for route in virt_element.get_routes():
-            # For each unregistered route, add the route to the routing table
-            if not route.is_registered:
-                # Add the route to the routing table
-                executeCommand(
-                    node,
-                    f"ip route add {route.subnet.network_address()}/{route.subnet.get_prefix_length()} via {route.dst_interface.physical_interface.get_ip()} dev {route.via_interface.name}",
-                )
+            # Skip registered routes
+            if route.is_registered:
+                continue
+            # Build network IP
+            ip_with_prefix = f"{route.subnet.network_address()}/{route.subnet.get_prefix_length()}"
+            if ip_with_prefix not in routes:
+                routes[ip_with_prefix] = []
+            routes[ip_with_prefix].append(route)
+        
+        # For each subnet, add the corresponding routes to the routing table
+        # BUT in a specific subnet has multiple routes, append only the one with the lowest cost (best route possible)
+        Logger().debug("\t * adding propagated routes to the routing table...")
+        for _, possible_routes in routes.items():
+            # Find the best route
+            best_cost = float("inf")
+            best_route = possible_routes[0]
+            
+            # If there are multiple routes, select the one with the lowest cost
+            if len(possible_routes) > 1:
+                Logger().debug(f"\t [!] neighbor routers have propagated multiple routes for subnet {best_route.subnet.network_address()}. Selecting the one with the lowest cost...")
+                for route in possible_routes:
+                    intf = route.via_interface.physical_interface
+                    # Cast interface to RouterNetworkInterface to access cost
+                    intf = cast(RouterNetworkInterface, intf)
+                    if intf.get_cost() < best_cost:
+                        best_cost = intf.get_cost()
+                        best_route = route
+            
+            # Add the route to the routing table
+            executeCommand(
+                node,
+                f"ip route add {best_route.subnet.network_address()}/{best_route.subnet.get_prefix_length()} via {best_route.dst_interface.physical_interface.get_ip()} dev {best_route.via_interface.name}",
+            )
 
     # Start the Mininet CLI
     CLI(net)

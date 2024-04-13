@@ -15,6 +15,7 @@ class Logger(metaclass=Singleton):
             raise TypeError("the directory must be a string.")
 
         self.logger = logging.getLogger("mininet-yaml")
+        self.logger.setLevel(logging.DEBUG)
 
         # Remove any previous handlers
         self.logger.handlers.clear()
