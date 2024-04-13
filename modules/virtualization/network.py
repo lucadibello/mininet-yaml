@@ -51,8 +51,7 @@ def run_virtual_topology(network: NetworkTopology):
         velement = virtual_network.get(element.get_name())
         if velement is None:
             raise ValueError(
-                f"Virtual element {element.get_name(
-                )} not found in the virtual network. There is a problem with the network topology."
+                f"Virtual element {element.get_name()} not found in the virtual network. There is a problem with the network topology."
             )
 
         # Get virtual mininet node
@@ -60,8 +59,7 @@ def run_virtual_topology(network: NetworkTopology):
         node = cast(Optional[Node], node)
         if node is None:
             raise ValueError(
-                f"Node {velement.get_name(
-                )} not found in the virtual network. There is a problem with the network topology."
+                f"Node {velement.get_name()} not found in the virtual network. There is a problem with the network topology."
             )
 
         # Get the virtual interfaces already configured
@@ -76,8 +74,7 @@ def run_virtual_topology(network: NetworkTopology):
             ):
                 intf_name = element.get_name() + "-" + intf.get_name()
                 Logger().warning(
-                    f"Interface {intf_name} of element {element.get_name(
-                    )} is not used in any link. It will be created but kept down to avoid routing problems."
+                    f"Interface {intf_name} of element {element.get_name()} is not used in any link. It will be created but kept down to avoid routing problems."
                 )
 
                 # Create the virtual interface and set the related IP address
@@ -85,8 +82,7 @@ def run_virtual_topology(network: NetworkTopology):
                     node,
                     [
                         f"ip link add {intf_name} type veth",
-                        f"ifconfig {intf_name} {intf.get_ip()} netmask {
-                            intf.get_mask()}",
+                        f"ifconfig {intf_name} {intf.get_ip()} netmask {intf.get_mask()}",
                         f"ifconfig {intf_name} down",
                     ],
                 )
@@ -107,8 +103,7 @@ def run_virtual_topology(network: NetworkTopology):
         node = cast(Optional[Node], node)
         if node is None:
             raise ValueError(
-                f"Element {virt_element.get_name(
-                )} not found in the virtual network. There is a problem with the network topology."
+                f"Element {virt_element.get_name()} not found in the virtual network. There is a problem with the network topology."
             )
 
         # Define which one is the default gateway for the network element
@@ -118,8 +113,7 @@ def run_virtual_topology(network: NetworkTopology):
             executeCommand(node, f"ip route add default via {gateway.ip}")
         else:
             Logger().debug(
-                f"\t [!] element {virt_element.get_name(
-                )} does not have a default gateway defined."
+                f"\t [!] element {virt_element.get_name()} does not have a default gateway defined."
             )
 
         # Now, for each route, add the corresponding route to the routing table
@@ -129,8 +123,7 @@ def run_virtual_topology(network: NetworkTopology):
                 # Add the route to the routing table
                 executeCommand(
                     node,
-                    f"ip route add {route.subnet.network_address()}/{route.subnet.get_prefix_length()} via {
-                        route.dst_interface.physical_interface.get_ip()} dev {route.via_interface.name}",
+                    f"ip route add {route.subnet.network_address()}/{route.subnet.get_prefix_length()} via {route.dst_interface.physical_interface.get_ip()} dev {route.via_interface.name}",
                 )
 
     # Start the Mininet CLI

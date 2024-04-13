@@ -1,5 +1,4 @@
 from datetime import datetime
-from doctest import debug
 import logging
 import os
 
@@ -15,13 +14,10 @@ class Logger(metaclass=Singleton):
         if not isinstance(dir, str):
             raise TypeError("the directory must be a string.")
 
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger("mininet-yaml")
 
-        # If debug mode, set the logger to debug (by default is info)
-        if debug:
-            self.logger.setLevel(logging.DEBUG)
-        else:
-            self.logger.setLevel(logging.INFO)
+        # Remove any previous handlers
+        self.logger.handlers.clear()
 
         # Generate a filename using basename+timestamp
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -32,16 +28,18 @@ class Logger(metaclass=Singleton):
 
         # Create a file handler which logs even debug messages
         fh = logging.FileHandler(filename)
-        fh.setLevel(logging.DEBUG)
+        fh.setLevel(logging.DEBUG) # Log everything to the file
 
         # Create a console handler which logs messages to the console
         ch = logging.StreamHandler()
-
-        # Set the console handler level based on the silent flag
-        if is_silent:
+        
+        # Now handle the debug and is_silent flags
+        if debug:
+            ch.setLevel(logging.DEBUG)
+        elif is_silent:
             ch.setLevel(logging.ERROR)
         else:
-            ch.setLevel(logging.DEBUG)
+            ch.setLevel(logging.INFO)
 
         # Create a formatter and set the formatter for the handlers
         formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
