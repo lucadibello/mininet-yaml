@@ -10,7 +10,7 @@
     </p>
 </div>
 
-<p align="center"><strong>🛜 Instantly Create and Manage Virtual Networks through Simple YAML Configurations</strong></p>
+<p align="center"><strong>🛜 Instantly Create and Manage Virtual Networks on your machine through Simple YAML Configurations</strong></p>
 
 
 ## Introduction
