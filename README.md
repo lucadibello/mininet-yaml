@@ -15,7 +15,7 @@
 
 ## Introduction
 
-Mininet-YAML is a powerful tool that simplifies the creation of virtual networks through YAML-configured topologies. By defining hosts, routers, and their interfaces in a YAML file, users can deploy complex network topologies within seconds. This tool integrates with [Mininet](https://mininet.org/) and [Open vSwitch](https://www.openvswitch.org/) to emulate network environments, allowing users to manage virtual nodes with the same granularity as physical hardware.
+Mininet-YAML is a powerful tool that simplifies the creation of virtual networks through YAML-configured topologies. By defining hosts, routers, and their interfaces in a YAML file, users can deploy complex network topologies directly on their machines within seconds. This tool integrates with [Mininet](https://mininet.org/) and [Open vSwitch](https://www.openvswitch.org/) to emulate network environments, allowing users to manage virtual nodes with the same granularity as physical hardware.
 
 ## Features
 
