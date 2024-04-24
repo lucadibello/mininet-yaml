@@ -216,19 +216,6 @@ class VirtualNetworkTopology(Topo):
                     src_vintf,
                 )
             )
-            # FIXME: Debug prints
-            print(src.get_name(), Route(
-                    subnet,
-                    src_vintf,
-                    dst,
-                    dst_vintf,
-                ))
-            print(dst.get_name(), Route(
-                    subnet,
-                    dst_vintf,
-                    src,
-                    src_vintf,
-                ))
 
     def _link_router_alternative_paths(
         self, routers: list[Router], virtual_network: VirtualNetwork
@@ -315,9 +302,6 @@ class VirtualNetworkTopology(Topo):
                 dst.add_route(
                     Route(subnet, dst_vintf, src, src_vintf)
                 )
-                # FIXME: debug prints
-                print(src.get_name(), Route(subnet, src_vintf, dst, dst_vintf))
-                print(dst.get_name(), Route(subnet, dst_vintf, src, src_vintf))
 
     def _link_hosts(self, subnets: list[Ipv4Subnet], virtual_network: VirtualNetwork):
         Logger().debug("Creating links between hosts and routers...")
@@ -588,7 +572,6 @@ class VirtualNetworkTopology(Topo):
                         if route.subnet == dst_route.subnet:
                             break
                     else:
-                        print(f"Route {route.subnet.get_ip()} not found in {router_target.get_name()} but found in {src_router.get_name()}")
                         dst_missing_routes.append(route)
 
                 # Find all possible routes from src_router to router_target in order to have the correct "via interface" for the missing routes
@@ -602,15 +585,6 @@ class VirtualNetworkTopology(Topo):
                     # We need to update the missing route to match the target router configuration
                     # In addition, if we have multiple routes between the routers, we add multiple route entries in order to provide failover capabilities
                     for possible_route in possible_routes:
-                        # Print some debug information about the new link
-                        print("Target: ", router_target.get_name())
-                        print("Route to add: ", dst_missing_route.subnet.get_ip())
-                        print("Direction: ", src_router.get_name() + f" {possible_route.dst_interface.name}" + " -> " + router_target.get_name() + f" {possible_route.via_interface.name}")
-                        print("Target will use IP: ", possible_route.via_interface.physical_interface.get_ip())
-                        print("\tActual route:", possible_route)
-
-
-
                         # Create the new route
                         new_route = Route(
                             subnet=dst_missing_route.subnet,
