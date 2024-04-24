@@ -7,6 +7,7 @@ from modules.validators.topology import (
     validate_routers,
     validate_hosts,
     validate_network_configuration,
+    validate_demands,
 )
 
 
@@ -52,6 +53,15 @@ def decodeTopology(file_path: str) -> NetworkTopology:
         status, msg = validate_network_configuration(routers, hosts)
         if not status:
             raise ValueError(f"Error while validating the network configuration: {msg}")
+
+        # Now, validate the demands of the network (if any)
+        if "demands" in data:
+            demands, status, msg = validate_demands(data["demands"], hosts, routers)
+            if not status:
+                raise ValueError(f"Error while validating the YAML file: {msg}")
+
+            # Print demands
+            print(demands)
 
         # Build network topology
         return NetworkTopology(routers=routers, hosts=hosts)

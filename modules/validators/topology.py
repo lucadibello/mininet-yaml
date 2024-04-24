@@ -1,11 +1,13 @@
 import ipaddress
-from typing import Tuple
+from typing import Tuple, cast
 
 from modules.models.network_elements import (
     NetworkInterface,
     Router,
     Host,
     RouterNetworkInterface,
+    NetworkElementDemand,
+    Demand,
 )
 
 _FIELDS = ["routers", "hosts"]
@@ -13,7 +15,7 @@ _FIELDS = ["routers", "hosts"]
 
 def _validate_network_element_name(name: str) -> Tuple[bool, str]:
     """
-    This function is used to validate the name of the network element.
+    This function is used to validate the name of any kind of network topology specification element (router/host).
     """
     # Check for null value or empty string
     if not name:
@@ -77,7 +79,7 @@ def validate_configuration_structure(data: dict[str, dict]) -> Tuple[bool, str]:
 
 
 def _validate_router_network_interface_details(
-    data: dict[str, str]
+    data: dict[str, str],
 ) -> Tuple[bool, str]:
     # First, validate generic field
     status, msg = _validate_network_interface_details(data)
@@ -245,3 +247,64 @@ def validate_network_configuration(
             )
 
     return True, ""
+
+
+def validate_demands(
+    raw_demands: list[dict], hosts: list[Host], routers: list[Router]
+) -> Tuple[list[Demand], bool, str]:
+    # Check if the demands are empty
+    if len(raw_demands) == 0:
+        return [], False, "No demands were found in the configuration."
+
+    # keep track of created demands
+    demands = list[Demand]()
+
+    # For each demand, extract the required fields
+    for raw_demand in raw_demands:
+        if not all(field in raw_demand for field in ["src", "dst", "rate"]):
+            return [], False, "A demand must have the fields 'src', 'dst', and 'rate'."
+
+        # If src and dst are the same, return an error
+        if raw_demand["src"] == raw_demand["dst"]:
+            return [], False, "Source and destination of a demand cannot be the same."
+
+        # Validate all fields
+        src_name = raw_demand["src"].strip()
+        dst_name = raw_demand["dst"].strip()
+        rate = raw_demand["rate"]
+
+        # Look for the source and destination in the network elements
+        # If not found, return an error
+        src, dst = None, None
+        for element in hosts + routers:
+            if element.get_name() == src_name:
+                src = element
+            if element.get_name() == dst_name:
+                dst = element
+
+            if src is not None and dst is not None:
+                break
+
+        # Notify the user if the source or destination is not found
+        if src is None:
+            return [], False, f"Source {src_name} of demand not found."
+        if dst is None:
+            return [], False, f"Destination {dst_name} of demand not found."
+
+        # Rate must be a positive float
+        if not isinstance(rate, int) or rate <= 0:
+            return [], False, "Rate must be a positive integer (> 0)."
+
+        # Create the demand object
+        demand = Demand(src, dst, rate)
+
+        # Record the demand in the global array
+        demands.append(demand)
+
+        # Assign the demand to both elements
+        demand = cast(NetworkElementDemand, demand)
+        src.add_demand(demand)
+        dst.add_demand(demand)
+
+    # Return success + all the created demands
+    return demands, True, ""
