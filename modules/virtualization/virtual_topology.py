@@ -2,7 +2,6 @@ from typing import Optional, cast
 from mininet.node import Node
 from modules.models.network_elements import (
     NetworkElement,
-    NetworkInterface,
     Router,
     SwitchInterface,
 )
@@ -27,7 +26,6 @@ from modules.exploration.explore import RouterPathNode, compute_routers_shortest
 class LinuxRouter(Node):
     def config(self, **params):
         super(LinuxRouter, self).config(**params)
-        # Enable forwarding on the router
         self.cmd("sysctl net.ipv4.ip_forward=1")
 
     def terminate(self):
@@ -63,19 +61,43 @@ class VirtualNetworkTopology(Topo):
 
         Logger().info("Building the virtual network topology...")
 
+        # First of all, we need to create all network elements
+        # 1) Create virtual routers
+        for router in network.get_routers():
+            # Create the Mininet node describing the router
+            self.addHost(
+                router.get_name(),
+                cls=LinuxRouter,
+                ip=None,  # Avoid setting the default IP address
+            )
+            # Register virtual node in the virtual network object
+            virtual_network.add_router(VirtualRouter(router))
+        # 2) Create virtual hosts
+        for host in network.get_hosts():
+            # Create the Mininet node describing the host
+            self.addHost(
+                host.get_name(),
+                ip=None,  # Avoid setting an IP address for now
+            )
+            # Register virtual node in the virtual network object
+            virtual_network.add_host(VirtualHost(host))
+        
         # Create mapping between virtual elements and Mininet nodes
         Logger().debug("Creating links between routers...")
 
         # Compute shortest path between routers
         _, previous = compute_routers_shortest_path(network.get_routers())
 
-        # Connect routers together using the best path possible. Doing this ensures that the optimal path is used every time.
-        self._link_routers_best_path(network.get_routers(), previous, virtual_network)
-        # First of all, we need to create the virtual network by connecting together the virtual elements
+        # 1) Connect hosts to routers
         self._link_hosts(network.get_subnets(), virtual_network)
-        # As there might be other (non optimal) alternative connections, we need to connect the remaining interfaces to have a complete network
+
+        # 2) Connect routers together using the best possible path
+        self._link_routers_best_path(network.get_routers(), previous, virtual_network)
+
+        # 3) Connect routers together using alternative paths (if possible)
         self._link_router_alternative_paths(network.get_routers(), virtual_network)
-        # Finally, after having connected all the network elements, we can propagate the routing information to all routers
+        
+        # 4) Propagate routing tables to all routers in the network
         self._propagate_routes(network.get_routers(), virtual_network)
 
         # Notify that the topology has been constructed
@@ -104,19 +126,6 @@ class VirtualNetworkTopology(Topo):
             previous_router_link = dijkstra_reverse_graph.get(router, None)
             if previous_router_link is None:
                 continue
-
-            # Create the router object for the previous router (if not already created)
-            for tmp in [router, previous_router_link.router]:
-                if not virtual_network.has(tmp):
-                    # Create the Mininet node describing the router
-                    self.addHost(
-                        tmp.get_name(),
-                        cls=LinuxRouter,
-                        ip=None,  # Avoid setting the default IP address
-                    )
-                    # Register virtual node in the virtual network object
-                    virtual_network.add_router(VirtualRouter(tmp))
-                    Logger().debug(f"Created virtual router: {tmp.get_name()}")
 
             # Create names for the routers interfaces
             src_intf_name = (
@@ -186,10 +195,14 @@ class VirtualNetworkTopology(Topo):
                     )
                 )
 
+            # Assert that both interfaces are in the same subnet
+            assert previous_router_link.via_interface.get_subnet() == previous_router_link.destination_interface.get_subnet()
+            subnet = previous_router_link.via_interface.get_subnet()
+
             # Register the new route for both routers
             src.add_route(
                 Route(
-                    previous_router_link.destination_interface.get_subnet(),
+                    subnet,
                     src_vintf,
                     dst,
                     dst_vintf,
@@ -197,12 +210,25 @@ class VirtualNetworkTopology(Topo):
             )
             dst.add_route(
                 Route(
-                    previous_router_link.via_interface.get_subnet(),
+                    subnet,
                     dst_vintf,
                     src,
                     src_vintf,
                 )
             )
+            # FIXME: Debug prints
+            print(src.get_name(), Route(
+                    subnet,
+                    src_vintf,
+                    dst,
+                    dst_vintf,
+                ))
+            print(dst.get_name(), Route(
+                    subnet,
+                    dst_vintf,
+                    src,
+                    src_vintf,
+                ))
 
     def _link_router_alternative_paths(
         self, routers: list[Router], virtual_network: VirtualNetwork
@@ -242,15 +268,16 @@ class VirtualNetworkTopology(Topo):
                     src_router.get_name(),
                     dst_router.get_name(),
                     intfName1=src_intf_name,
-                    params1={"ip": dst_interface.get_ip_with_prefix()},
+                    params1={"ip": via_interface.get_ip_with_prefix()},
                     intfName2=dst_intf_name,
-                    params2={"ip": via_interface.get_ip_with_prefix()},
+                    params2={"ip": dst_interface.get_ip_with_prefix()},
                 )
 
                 # Debug log that the link has been created
                 Logger().debug(
-                    f"\t * created alternative link: {src_router.get_name()}:{src_intf_name} <--> {dst_router.get_name()}:{dst_intf_name}"
+                    f"\t * created alternative link: {src_intf_name} <--> {dst_intf_name}"
                 )
+                
                 Logger().debug(
                     f"\t\t IP: {via_interface.get_ip_with_prefix()} <--> {dst_interface.get_ip_with_prefix()}"
                 )
@@ -277,15 +304,20 @@ class VirtualNetworkTopology(Topo):
                 src.add_virtual_interface(src_vintf)
                 dst.add_virtual_interface(dst_vintf)
 
+                # Assert that the subnet is the same for both interfaces
+                assert via_interface.get_subnet() == dst_interface.get_subnet()
+                subnet = via_interface.get_subnet()
+
                 # Register the route for both routers
-                # src.add_route(dst_interface.get_subnet(), src_vintf)
-                # dst.add_route(via_interface.get_subnet(), dst_vintf)
                 src.add_route(
-                    Route(dst_interface.get_subnet(), src_vintf, dst, dst_vintf)
+                    Route(subnet, src_vintf, dst, dst_vintf)
                 )
                 dst.add_route(
-                    Route(via_interface.get_subnet(), dst_vintf, src, src_vintf)
+                    Route(subnet, dst_vintf, src, src_vintf)
                 )
+                # FIXME: debug prints
+                print(src.get_name(), Route(subnet, src_vintf, dst, dst_vintf))
+                print(dst.get_name(), Route(subnet, dst_vintf, src, src_vintf))
 
     def _link_hosts(self, subnets: list[Ipv4Subnet], virtual_network: VirtualNetwork):
         Logger().debug("Creating links between hosts and routers...")
@@ -321,26 +353,14 @@ class VirtualNetworkTopology(Topo):
                     f"Connecting {host_endpoint.entity.get_name()}:{host_endpoint.interface.get_name()} directly to {router_endpoint.entity.get_name()}:{router_endpoint.interface.get_name()} in subnet {subnet.network_address()}/{subnet.get_prefix_length()}..."
                 )
 
-                # Create the virtual host object
-                if not virtual_network.has(host_endpoint.entity):
-                    self.addHost(
-                        host_endpoint.entity.get_name(),
-                        ip=None,  # Avoid setting an IP address for now
-                    )
-                    virtual_network.add_host(VirtualHost(host_endpoint.entity))
-                    Logger().debug(
-                        f"Created virtual host: {host_endpoint.entity.get_name()}"
-                    )
-
                 # Create interface names
                 host_intf_name = f"{host_endpoint.entity.get_name()}-{host_endpoint.interface.get_name()}"
-                router_intf_name = f"{router_endpoint.entity.get_name()}-{host_endpoint.interface.get_name()}"
+                router_intf_name = f"{router_endpoint.entity.get_name()}-{router_endpoint.interface.get_name()}"
 
-                # Check if any of the two links is already used
-                if self.is_interface_used(host_endpoint.entity, host_intf_name, virtual_network) or self.is_interface_used(router_endpoint.entity, router_intf_name, virtual_network):
-                    Logger().debug(f"\t * could not create link between {host_endpoint.entity.get_name()}:{host_endpoint.interface.get_name()} and {router_endpoint.entity.get_name()}:{router_endpoint.interface.get_name()}. One of the interfaces is already used.")
-                    continue
-
+                Logger().debug(
+                    f"Connecting host {host_endpoint.entity.get_name()}:{host_endpoint.interface.get_name()} to router {router_endpoint.entity.get_name()}:{router_endpoint.interface.get_name()}..."
+                )
+                
                 # Add link between host and router
                 self.addLink(
                     host_endpoint.entity.get_name(),
@@ -348,7 +368,11 @@ class VirtualNetworkTopology(Topo):
                     intfName1=host_intf_name,
                     params1={"ip": host_endpoint.interface.get_ip_with_prefix()},
                     intfName2=router_intf_name,
-                    params2={"ip": host_endpoint.interface.get_ip_with_prefix()},
+                    params2={"ip": router_endpoint.interface.get_ip_with_prefix()},
+                )
+
+                Logger().debug(
+                    f"\t * created link: {host_intf_name} <--> {router_intf_name}"
                 )
 
                 # Register the virtual interfaces
@@ -366,7 +390,7 @@ class VirtualNetworkTopology(Topo):
                     name=host_intf_name, physical_interface=host_endpoint.interface
                 )
                 router_vintf = VirtualNetworkInterface(
-                    name=router_intf_name, physical_interface=host_endpoint.interface
+                    name=router_intf_name, physical_interface=router_endpoint.interface
                 )
 
                 # Register the virtual interfaces used in the link
@@ -382,6 +406,14 @@ class VirtualNetworkTopology(Topo):
                         host_vintf,
                     )
                 )
+
+                # Add default gateway for the host
+                host.set_gateway(
+                    Gateway(
+                        ip=router_endpoint.interface.get_ip(),
+                        via_interface_name=router_intf_name,
+                    )
+                )
             else:
                 # We create a switch to connect multiple hosts to the router
                 switch = self.addSwitch(f"s{switch_counter}", ip=None)
@@ -389,9 +421,6 @@ class VirtualNetworkTopology(Topo):
 
                 # Counter for network interfaces for this particular switch
                 switch_intf_counter = 0
-
-                # Log that a switch has been created
-                Logger().debug(f"Created virtual switch {switch}")
 
                 # Create virtual switch object
                 virt_switch = VirtualSwitch(
@@ -403,17 +432,6 @@ class VirtualNetworkTopology(Topo):
 
                 # Now, for each host, we connect it to the switch
                 for host in subnet.get_hosts():
-                    # Create the virtual host object
-                    if not virtual_network.has(host.entity):
-                        self.addHost(
-                            host.entity.get_name(),
-                            ip=None,  # L2 switch, no need to set an IP address
-                        )
-                        virtual_network.add_host(VirtualHost(host.entity))
-                        Logger().debug(
-                            f"Created virtual host: {host.entity.get_name()}"
-                        )
-
                     # Create interface names
                     host_intf_name = (
                         f"{host.entity.get_name()}-{host.interface.get_name()}"
@@ -570,10 +588,11 @@ class VirtualNetworkTopology(Topo):
                         if route.subnet == dst_route.subnet:
                             break
                     else:
+                        print(f"Route {route.subnet.get_ip()} not found in {router_target.get_name()} but found in {src_router.get_name()}")
                         dst_missing_routes.append(route)
 
                 # Find all possible routes from src_router to router_target in order to have the correct "via interface" for the missing routes
-                possible_routes = []
+                possible_routes = list[Route]()
                 for route in router_target.get_routes():
                     if route.to_element == src_virtual_router:
                         possible_routes.append(route)
@@ -583,6 +602,15 @@ class VirtualNetworkTopology(Topo):
                     # We need to update the missing route to match the target router configuration
                     # In addition, if we have multiple routes between the routers, we add multiple route entries in order to provide failover capabilities
                     for possible_route in possible_routes:
+                        # Print some debug information about the new link
+                        print("Target: ", router_target.get_name())
+                        print("Route to add: ", dst_missing_route.subnet.get_ip())
+                        print("Direction: ", src_router.get_name() + f" {possible_route.dst_interface.name}" + " -> " + router_target.get_name() + f" {possible_route.via_interface.name}")
+                        print("Target will use IP: ", possible_route.via_interface.physical_interface.get_ip())
+                        print("\tActual route:", possible_route)
+
+
+
                         # Create the new route
                         new_route = Route(
                             subnet=dst_missing_route.subnet,

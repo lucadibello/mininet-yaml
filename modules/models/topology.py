@@ -139,7 +139,6 @@ class NetworkTopology:
                     # Add subnet to the list of subnets
                     self._subnets.append(subnet)
 
-                    Logger().debug("Found new subnet: " + str(self._subnets[-1]))
 
                     # Register the subnet ID for fast lookup
                     self._subnets_ids[network_ip] = len(self._subnets) - 1
@@ -154,9 +153,13 @@ class NetworkTopology:
                     else:
                         self._subnets[idx].add_host(endpoint)
 
-                    Logger().debug(
-                        f"\t * added element {element.get_name()} to subnet {self._subnets[idx].network_address()}"
-                    )
+        # Log for each subnet the elements that are part of it
+        for subnet in self._subnets:
+            Logger().debug(f"Subnet {subnet.get_ip()}/{subnet.get_prefix_length()} contains:")
+            for router in subnet.get_routers():
+                Logger().debug(f"\tRouter {router.entity.get_name()} via {router.interface.get_name()}")
+            for host in subnet.get_hosts():
+                Logger().debug(f"\tHost {host.entity.get_name()} via {host.interface.get_name()}")
 
     def draw(self):
         """

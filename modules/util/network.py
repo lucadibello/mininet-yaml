@@ -115,7 +115,7 @@ class Ipv4Subnet(Ipv4Network):
         raise ValueError("No available IP addresses for management")
 
     def __str__(self) -> str:
-        return f"{self._ip}/{self._mask}, Clients: {', '.join([client.entity.get_name() for client in self.get_clients()])}"
+        return f"{self._ip}/{self.get_prefix_length()}"
 
     def __repr__(self) -> str:
         return self.__str__()

@@ -60,9 +60,6 @@ def decodeTopology(file_path: str) -> NetworkTopology:
             if not status:
                 raise ValueError(f"Error while validating the YAML file: {msg}")
 
-            # Print demands
-            print(demands)
-
         # Build network topology
         return NetworkTopology(routers=routers, hosts=hosts)
     except ValidationError as e:

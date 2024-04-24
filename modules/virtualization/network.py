@@ -9,7 +9,7 @@ from mininet.clean import cleanup
 
 from modules.util.logger import Logger
 from modules.util.mininet import executeChainedCommands, executeCommand
-from modules.virtualization.mininet_types import VirtualNetworkTopology
+from modules.virtualization.virtual_topology import VirtualNetworkTopology
 from modules.virtualization.network_elements import (
     Route,
     VirtualNetwork,
