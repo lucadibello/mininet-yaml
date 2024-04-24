@@ -1,3 +1,7 @@
+# Constants
+_DEFAULT_COST = 1
+_DEFAULT_DEMAND_RATE = 0
+
 class NetworkInterface:
     """
     This class represents a network interface of a network element.
@@ -70,7 +74,7 @@ class RouterNetworkInterface(NetworkInterface):
     This class represents a network interface of a router.
     """
 
-    def __init__(self, name: str, ip: str, mask: str, cost: int = 1):
+    def __init__(self, name: str, ip: str, mask: str, cost: int = _DEFAULT_COST):
         super().__init__(name, ip, mask)
         self._cost = cost
 
@@ -205,4 +209,50 @@ class Host(NetworkElement):
         return f"Host(name={self.get_name()}, interfaces={self.get_interfaces()})"
 
     def __repr__(self):
+        return self.__str__()
+
+class NetworkElementDemand:
+    """
+    This class represents a minimum transmission rate demand between the current network element and another one
+    """
+
+    def __init__(
+        self,
+        destination: NetworkElement,
+        transmissionRateDemand: int = _DEFAULT_DEMAND_RATE,
+    ):
+        self._destination = destination
+        self._demandTransmissionRate = transmissionRateDemand
+
+
+class Demand(NetworkElementDemand):
+    """
+    This class represents a minimum transmission rate demand between two network elements.
+    """
+
+    def __init__(
+        self,
+        source: NetworkElement,
+        destination: NetworkElement,
+        transmissionRateDemand: int = _DEFAULT_DEMAND_RATE,
+    ):
+        super().__init__(destination, transmissionRateDemand)
+        self._source = source
+
+    @property
+    def source(self):
+        return self._source
+
+    @property
+    def destination(self):
+        return self._destination
+
+    @property
+    def demandTransmissionRate(self):
+        return self._demandTransmissionRate
+
+    def __str__(self) -> str:
+        return f"Demand(source={self.source.get_name()}, destination={self.destination.get_name()}, transmissionRateBytes={self.demandTransmissionRate})"
+
+    def __repr__(self) -> str:
         return self.__str__()
