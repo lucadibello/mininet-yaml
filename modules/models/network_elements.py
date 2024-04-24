@@ -148,6 +148,7 @@ class NetworkElement:
         self._name = name
         self._interfaces: list[NetworkInterface] = []
         self._links: list[Link] = []
+        self._demands: list[NetworkElementDemand] = []
 
     def set_interfaces(self, interfaces: list[NetworkInterface]):
         self._interfaces = interfaces
@@ -176,6 +177,11 @@ class NetworkElement:
     def get_links(self):
         return self._links
 
+    def get_demands(self):
+        return self._demands
+    
+    def add_demand(self, demand: "NetworkElementDemand"):
+        self._demands.append(demand)
 
 class Router(NetworkElement):
     """

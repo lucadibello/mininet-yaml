@@ -36,6 +36,21 @@ class LinuxRouter(Node):
 
 
 class VirtualNetworkTopology(Topo):
+    def is_interface_used(self, element: NetworkElement, interface_name: str, virtual_network: VirtualNetwork) -> bool:
+        # Get the virtual router object
+        virt_router = virtual_network.get(element.get_name())
+        if virt_router is None:
+            raise ValueError(
+                f"Router {element.get_name()} not found in the virtual network. Are you calling this method after '_link_routers_best_path'?"
+            )
+
+        # Check if there is already a virtual interface with the same name
+        return any(
+            vintf.name == interface_name
+            for vintf in virt_router.get_virtual_interfaces()
+        )
+
+
     def build(self, network: NetworkTopology, virtual_network: VirtualNetwork):
         """
         Virtualizes the network topology leveraging Mininet.
@@ -56,10 +71,10 @@ class VirtualNetworkTopology(Topo):
 
         # Connect routers together using the best path possible. Doing this ensures that the optimal path is used every time.
         self._link_routers_best_path(network.get_routers(), previous, virtual_network)
-        # As there might be other (non optimal) alternative connections, we need to connect the remaining interfaces to have a complete network
-        self._link_router_alternative_paths(network.get_routers(), virtual_network)
         # First of all, we need to create the virtual network by connecting together the virtual elements
         self._link_hosts(network.get_subnets(), virtual_network)
+        # As there might be other (non optimal) alternative connections, we need to connect the remaining interfaces to have a complete network
+        self._link_router_alternative_paths(network.get_routers(), virtual_network)
         # Finally, after having connected all the network elements, we can propagate the routing information to all routers
         self._propagate_routes(network.get_routers(), virtual_network)
 
@@ -193,20 +208,6 @@ class VirtualNetworkTopology(Topo):
         self, routers: list[Router], virtual_network: VirtualNetwork
     ):
         # This helper method allows to check if there is already a link that uses the same interface
-        def is_interface_used(router: Router, interface_name: str) -> bool:
-            # Get the virtual router object
-            virt_router = virtual_network.get(router.get_name())
-            if virt_router is None:
-                raise ValueError(
-                    f"Router {router.get_name()} not found in the virtual network. Are you calling this method after '_link_routers_best_path'?"
-                )
-
-            # Check if there is already a virtual interface with the same name
-            return any(
-                vintf.name == interface_name
-                for vintf in virt_router.get_virtual_interfaces()
-            )
-
         # Check if we have at least two routers to connect
         if len(routers) < 2:
             return
@@ -233,9 +234,7 @@ class VirtualNetworkTopology(Topo):
                 dst_intf_name = f"{dst_router.get_name()}-{dst_interface.get_name()}"
 
                 # If any of the interfaces is already used, we can skip this link as it has already been created
-                if is_interface_used(src_router, src_intf_name) or is_interface_used(
-                    dst_router, dst_intf_name
-                ):
+                if self.is_interface_used(src_router, src_intf_name, virtual_network) or self.is_interface_used(dst_router, dst_intf_name, virtual_network):
                     continue
 
                 # Connect the router to the previous one
@@ -319,7 +318,7 @@ class VirtualNetworkTopology(Topo):
                 router_endpoint = subnet.get_routers()[0]
 
                 Logger().debug(
-                    f"Connecting {host_endpoint.entity.get_name()} directly to {router_endpoint.entity.get_name()} in subnet {subnet.network_address()}/{subnet.get_prefix_length()}"
+                    f"Connecting {host_endpoint.entity.get_name()}:{host_endpoint.interface.get_name()} directly to {router_endpoint.entity.get_name()}:{router_endpoint.interface.get_name()} in subnet {subnet.network_address()}/{subnet.get_prefix_length()}..."
                 )
 
                 # Create the virtual host object
@@ -336,6 +335,11 @@ class VirtualNetworkTopology(Topo):
                 # Create interface names
                 host_intf_name = f"{host_endpoint.entity.get_name()}-{host_endpoint.interface.get_name()}"
                 router_intf_name = f"{router_endpoint.entity.get_name()}-{host_endpoint.interface.get_name()}"
+
+                # Check if any of the two links is already used
+                if self.is_interface_used(host_endpoint.entity, host_intf_name, virtual_network) or self.is_interface_used(router_endpoint.entity, router_intf_name, virtual_network):
+                    Logger().debug(f"\t * could not create link between {host_endpoint.entity.get_name()}:{host_endpoint.interface.get_name()} and {router_endpoint.entity.get_name()}:{router_endpoint.interface.get_name()}. One of the interfaces is already used.")
+                    continue
 
                 # Add link between host and router
                 self.addLink(
@@ -416,8 +420,13 @@ class VirtualNetworkTopology(Topo):
                     )
                     switch_intf_name = f"{switch}-eth{switch_intf_counter}"
 
+                    Logger().debug(
+                        f"Connecting host {host.entity.get_name()}:{host.interface.get_name()} to switch {switch}:eth{switch_intf_counter}..."
+                    )
+
                     # Increment the counter for the switch interface
                     switch_intf_counter += 1
+
 
                     # Add link between host and switch
                     self.addLink(
@@ -456,6 +465,10 @@ class VirtualNetworkTopology(Topo):
                         f"{router.entity.get_name()}-{router.interface.get_name()}"
                     )
                     switch_intf_name = f"{switch}-eth{switch_intf_counter}"
+
+                    Logger().debug(
+                        f"Connecting router {router.entity.get_name()}:{router.interface.get_name()} to switch {switch}:eth{switch_intf_counter}..."
+                    )
 
                     # Increment the counter for the switch interface
                     switch_intf_counter += 1
