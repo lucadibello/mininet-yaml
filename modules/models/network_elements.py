@@ -1,6 +1,5 @@
 # Constants
 _DEFAULT_COST = 1
-_DEFAULT_DEMAND_RATE = 0
 
 class NetworkInterface:
     """
@@ -225,10 +224,18 @@ class NetworkElementDemand:
     def __init__(
         self,
         destination: NetworkElement,
-        transmissionRateDemand: int = _DEFAULT_DEMAND_RATE,
+        maximumTransmissionRate
     ):
         self._destination = destination
-        self._demandTransmissionRate = transmissionRateDemand
+        self._maximumTransmissionRate = maximumTransmissionRate
+    
+    @property
+    def destination(self):
+        return self._destination
+
+    @property
+    def maximumTransmissionRate(self):
+        return self._maximumTransmissionRate
 
 
 class Demand(NetworkElementDemand):
@@ -240,25 +247,17 @@ class Demand(NetworkElementDemand):
         self,
         source: NetworkElement,
         destination: NetworkElement,
-        transmissionRateDemand: int = _DEFAULT_DEMAND_RATE,
+        maximumTransmissionRate
     ):
-        super().__init__(destination, transmissionRateDemand)
+        super().__init__(destination, maximumTransmissionRate)
         self._source = source
 
     @property
     def source(self):
         return self._source
 
-    @property
-    def destination(self):
-        return self._destination
-
-    @property
-    def demandTransmissionRate(self):
-        return self._demandTransmissionRate
-
     def __str__(self) -> str:
-        return f"Demand(source={self.source.get_name()}, destination={self.destination.get_name()}, transmissionRateBytes={self.demandTransmissionRate})"
+        return f"Demand(source={self.source.get_name()}, destination={self.destination.get_name()}, transmissionRateBytes={self.maximumTransmissionRate})"
 
     def __repr__(self) -> str:
         return self.__str__()
