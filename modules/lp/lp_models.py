@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Generator, Iterator, cast
 from modules.models.network_elements import RouterNetworkInterface
 from modules.util.logger import Logger
 from modules.virtualization.network_elements import Route, VirtualNetworkElement, VirtualRouter
@@ -83,31 +83,60 @@ class LPNetwork():
         self._adjacency_list = dict[VirtualNetworkElement, dict[VirtualNetworkElement, list[LPNetwork.LPRoute]]]()
     
     def add_route(self, lp_route: LPRoute):
-        # Save route in global array
-        self._routes.append(lp_route)
-
-        # Register route in lookup table
-        self._route_to_variable[lp_route.route] = lp_route.lp_variable_name
-        self._variable_to_route[lp_route.lp_variable_name] = lp_route
-
-        # If source element not present, entire entry is not present
-        if lp_route.src_element not in self._adjacency_list:
-            self._adjacency_list[lp_route.src_element] = dict[VirtualNetworkElement, list[LPNetwork.LPRoute]]()
-            self._adjacency_list[lp_route.src_element][lp_route.dst_element] = list[LPNetwork.LPRoute]()
-        # If source element present but destination element not present, we need only to create the list for the destination element
-        elif lp_route.dst_element not in self._adjacency_list[lp_route.src_element]:
-            self._adjacency_list[lp_route.src_element][lp_route.dst_element] = list[LPNetwork.LPRoute]()
+        # Reverse the route to add it in the opposite direction
+        lp_route_rev = LPNetwork.LPRoute(lp_route.dst_element, lp_route.route.reverse(lp_route.src_element))
         
-        # Add route to adjacency list
-        self._adjacency_list[lp_route.src_element][lp_route.dst_element].append(lp_route)
+        # Register both routes in the lookup table(s)
+        for lpr in [lp_route, lp_route_rev]:
+            # Log both routes
+            print(lpr)
 
-    def traverse_network_bfs(self) -> list[tuple[VirtualNetworkElement, LPRoute]]:
+            self._route_to_variable[lpr.route] = lpr.lp_variable_name
+            self._variable_to_route[lpr.lp_variable_name] = lpr
+
+            # If source element not present, entire entry is not present
+            if lpr.src_element not in self._adjacency_list:
+                self._adjacency_list[lpr.src_element] = dict[VirtualNetworkElement, list[LPNetwork.LPRoute]]()
+                self._adjacency_list[lpr.src_element][lpr.dst_element] = list[LPNetwork.LPRoute]()
+            # If source element present but destination element not present, we need only to create the list for the destination element
+            elif lpr.dst_element not in self._adjacency_list[lpr.src_element]:
+                self._adjacency_list[lpr.src_element][lpr.dst_element] = list[LPNetwork.LPRoute]()
+        
+            # Add route in the given direction
+            self._adjacency_list[lpr.src_element][lpr.dst_element].append(lpr)
+
+    def traverse_network_bfs(self) -> Iterator[tuple[VirtualNetworkElement, LPRoute]]:
         """
         This method allows to traverse the entire network using a Breadth-First Search algorithm, yielding each new element along with the LPRoute object that represents the connection
         between the current element and the previous element.
         """
-        # FIXME: Finish this pls!
-        return list[tuple[VirtualNetworkElement, LPNetwork.LPRoute]]()
+        visited = set[VirtualNetworkElement]()
+        queue = list[VirtualNetworkElement]()
+
+        # If the adjacency list is empty, we have no routes to traverse so we can simply return an empty list
+        if len(self._adjacency_list) == 0:
+            return list[tuple[VirtualNetworkElement, LPNetwork.LPRoute]]()
+        
+        # Append to the queue a random element (in this case, the first element of the adjacency list)
+        queue.append(list(self._adjacency_list.keys())[0])
+        
+        # Start from the first element
+        while len(queue) > 0:
+            # Get the current element
+            current = queue.pop(0)
+
+            # If the current element is not visited, we need to visit it
+            if current not in visited:
+                # Mark the element as visited
+                visited.add(current)
+                
+                # Yield the current element and the LPRoute object
+                for dst_element, routes in self._adjacency_list[current].items():
+                    for route in routes:
+                        # Continue exploring only if we have found an unvisited element
+                        if dst_element not in visited:
+                            yield (dst_element, route)
+                            queue.append(dst_element)
 
     def get_lproute_from_variable(self, variable: str) -> LPRoute:
         return self._variable_to_route[variable]
@@ -116,8 +145,16 @@ class LPNetwork():
         return self._route_to_variable[route]
 
     def has_route(self, route: Route) -> bool:
+        def stringify(route): 
+            return f"{route.to_element.get_name()}:{route.dst_interface.name} via {route.via_interface.name}"
+        # We must check if the route is present in the lookup table
+        print("----")
+        for r in self._route_to_variable.keys():
+            print(r == route, stringify(r), " VS ", stringify(route))
+
+        # Print current state of the lookup table to check why the route is still added!
         return route in self._route_to_variable
-    
+
     def get_lp_routes(self) -> list[LPRoute]:
         return self._routes
  

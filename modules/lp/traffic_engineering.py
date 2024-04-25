@@ -21,11 +21,10 @@ def traffic_engineering_task_from_virtual_network(virtual_network: VirtualNetwor
                 lp_network.add_route(LPNetwork.LPRoute(router, route))
 
     # 2) Traverse the virtual network node by node and add the constraints to the Linear Programming problem.
+    # FIXME: continue from here! We need to explore the entire graph and add the constraints to the LP task.
     for element, lp_route in lp_network.traverse_network_bfs():
         # For each element, add the constraints to the Linear Programming problem
-
-        # FIXME: continue from here! We need to explore the entire graph and add the constraints to the LP task.
-        pass
+        print("Found element:", element.get_name(), " via route ", lp_route.lp_variable_name)
 
     # 2) The objective function should maximize the minimum utilization of the network interfaces.
     objective_function = "maximize: "

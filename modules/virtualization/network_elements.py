@@ -171,5 +171,17 @@ class Route:
     def is_registered(self) -> bool:
         return self._is_registered
 
+    def reverse(self, new_dst_element: VirtualNetworkElement) -> "Route":
+        """
+        This method allows to easily reverse the route, requiring to define the new destination element.
+        """
+        return Route(
+            self._subnet,
+            self._dst_interface,
+            new_dst_element,
+            self._via_interface,
+            is_registered=False,
+        )
+
     def __str__(self) -> str:
         return f"Route for {self._subnet} available by exiting on intf {self._via_interface.name} (ip: {self._via_interface.physical_interface.get_ip()}) and, and reaching {self._to_element.get_name()} on interface {self._dst_interface.name} (ip: {self._dst_interface.physical_interface.get_ip()})"

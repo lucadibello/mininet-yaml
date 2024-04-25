@@ -53,7 +53,6 @@ def main():
                 
                 # Check if we need to virtualize or not
                 if is_lp:
-                    Logger().info("LP problem generated. Output is displayed below.")
                     raise NotImplementedError("LP problem not implemented yet.")
                     print(lptask.to_cplex())
                 elif is_print_goodput:
