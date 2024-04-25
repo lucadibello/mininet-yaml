@@ -124,7 +124,9 @@ class Ipv4Subnet(Ipv4Network):
         if not isinstance(other, Ipv4Subnet):
             return False
         return self._ip == other._ip and self._mask == other._mask
-
+    
+    def __hash__(self) -> int:
+        return hash((self._ip, self._mask))
 
 def does_link_exist(
     a: NetworkElement, b: NetworkElement
