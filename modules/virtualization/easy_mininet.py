@@ -5,6 +5,7 @@ from mininet.node import Node
 from mininet.cli import CLI
 from modules.models.network_elements import NetworkElement, RouterNetworkInterface
 from modules.models.topology import NetworkTopology
+from modules.util.exceptions import NetworkError
 from modules.util.logger import Logger
 from modules.util.mininet import executeChainedCommands, executeCommand
 from modules.virtualization.network_elements import Route, VirtualNetwork, VirtualNetworkInterface
@@ -18,12 +19,16 @@ class EasyMininet():
         self._net = net 
         self._physical_network = physical_network
         self._virtual_network = virtual_network
+        self._is_started = False
 
     def start_network(self):
         """
         This method starts the virtual network and configures the IP addresses and routing tables of all elements of the network
         according to the generated virtual network topology.
         """
+        if self._is_started:
+            raise NetworkError("The virtual network has already been started.")
+        
         # Start Mininet
         Logger().info("Starting the virtual network...")
         self._net.start()
@@ -143,11 +148,16 @@ class EasyMininet():
                     node,
                     f"ip route add {best_route.subnet.network_address()}/{best_route.subnet.get_prefix_length()} via {best_route.dst_interface.physical_interface.get_ip()} dev {best_route.via_interface.name}",
                 )
+        
+        # Mark the virtual network as started
+        self._is_started = True
     
     def stop_network(self):
         """
         This method stops the virtual network and cleans up the Mininet environment.
         """
+        if not self._is_started:
+            raise NetworkError("The virtual network has not been started yet.")
         Logger().info("Stopping the virtual network...")
         self._net.stop()     
     
@@ -155,6 +165,8 @@ class EasyMininet():
         """
         This method opens the Mininet CLI shell.
         """
+        if not self._is_started:
+            raise NetworkError("The virtual network has not been started yet.")
         Logger().info("Opening Mininet CLI shell...")
         CLI(self._net)
     
