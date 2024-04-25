@@ -52,17 +52,14 @@ def main():
             # Check if we need to solve the LP problem before starting the network
             if len(topology.get_demands()) > 0:
                 lptask = lp_task_from_virtual_network(virtual_network)
-                # If user has requested to print the LP problem or print the goodput, do not virtualize! 
-                if is_lp or is_print_goodput:
-                    Logger().info("Network virtualization skipped. Generating LP problem...")
-
-                    # Print the LP problem in CPLEX format
-                    if is_lp:
-                        Logger().info("LP problem generated. Output is displayed below.")
-                        raise NotImplementedError("LP problem not implemented yet.")
-                        print(lptask.to_cplex())
-                    else:
-                        raise NotImplementedError("Goodput analysis not implemented yet.")
+                
+                # Check if we need to virtualize or not
+                if is_lp:
+                    Logger().info("LP problem generated. Output is displayed below.")
+                    raise NotImplementedError("LP problem not implemented yet.")
+                    print(lptask.to_cplex())
+                elif is_print_goodput:
+                    raise NotImplementedError("Goodput analysis not implemented yet.")
                 else:
                     # We need to virtualize the network but also apply the Traffic Control rules
                     raise NotImplementedError("Traffic Control not implemented yet.")
