@@ -1,9 +1,9 @@
 from modules.lp.lp_models import LPNetwork, LPTask
 from modules.virtualization.network_elements import VirtualNetwork
 
-def neteng_lp_task_from_virtual_network(virtual_network: VirtualNetwork) -> LPTask:
+def traffic_engineering_task_from_virtual_network(virtual_network: VirtualNetwork) -> LPTask:
     """
-    This function takes a VirtualNetwork object and returns a Linear Programming task object that represents the network
+    This function takes a VirtualNetwork object and returns a Linear Programming task object that represents the traffic
     engineering problem of the virtual network. The Linear Programming task should be ready to be solved by an external
     tool/library.
     """
