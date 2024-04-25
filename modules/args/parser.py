@@ -19,13 +19,27 @@ class ArgParser:
         self._parser.add_argument(
             "-d",
             "--draw",
-            help="output the router topology as an undirected graph in Graphviz format",
+            help="output to stdout the router topology as an undirected graph in Graphviz format",
+            action="store_true",
+        )
+        # Linear programming mode
+        self._parser.add_argument(
+            "-l",
+            "--lp",
+            help="output to stdout the network engineering optimization problem in CPLEX format generated from the specified demands in the YAML file",
+            action="store_true",
+        )
+        # Print optimal goodput archievable for each of the flows listed in the demands
+        self._parser.add_argument(
+            "-p",
+            "--print",
+            help="output to stdout the optimal goodput archievable for each of the flows listed in the demands in the YAML file (if any)",
             action="store_true",
         )
         # Log directory
         self._parser.add_argument(
-            "-l",
-            "--log",
+            "-ld",
+            "--log-dir",
             help="specify the directory where the log file will be saved (default: logs/)",
             # Custom validator that checks if the directory exists and is writable
             action=ValidateDirectoryPath,
