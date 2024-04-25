@@ -1,10 +1,8 @@
 from modules.args.parser import ArgParser
-from modules.lp.network_engineering import lp_task_from_virtual_network
-from modules.models.topology import NetworkTopology
+from modules.lp.task import lp_task_from_virtual_network
 from modules.yaml.decoder import decodeTopology
 from modules.util.logger import Logger
 from modules.virtualization.network import create_network_from_virtual_topology
-from mininet.cli import CLI
 
 def main():
     # Parse + validate arguments
@@ -51,6 +49,7 @@ def main():
             
             # Check if we need to solve the LP problem before starting the network
             if len(topology.get_demands()) > 0:
+                print("Generating..")
                 lptask = lp_task_from_virtual_network(virtual_network)
                 
                 # Check if we need to virtualize or not

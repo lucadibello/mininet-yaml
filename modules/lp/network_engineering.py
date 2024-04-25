@@ -1,43 +1,69 @@
 from typing import cast
 from modules.lp.task import LPTask
 from modules.models.network_elements import Router, RouterNetworkInterface
-from modules.virtualization.network_elements import Route, VirtualNetwork
+from modules.virtualization.network_elements import Route, VirtualNetwork, VirtualNetworkElement, VirtualRouter
 
+class LPNetwork():
+    class LPRoute():
+        def __init__(self, src: VirtualNetworkElement, route: Route):
+            self._src_element = src
+            self._route = route
+            self._lp_variable_name = f"x_{src.get_name()}_{route.to_element.get_name()}_{route.dst_interface.physical_interface.get_name()}"
 
-def lp_task_from_virtual_network(virtual_network: VirtualNetwork) -> LPTask:
-    """
-    This function takes a VirtualNetwork object and returns a Linear Programming task object that represents the network
-    engineering problem of the virtual network. The Linear Programming task should be ready to be solved by an external
-    tool/library.
-    """
+            # If the route is a route between routers, we need also to register the cost of the route
+            if isinstance(route.to_element, VirtualRouter):
+                # The cost of the route is the cost of the destination interface
+                self._cost = cast(RouterNetworkInterface, route.dst_interface.physical_interface).get_cost()
+            else:
+                # The cost of the route is zero (we do not have a minimum Mbps requirement for hosts)
+                self._cost = 0
+
+        @property
+        def src_element(self) -> VirtualNetworkElement:
+            return self._src_element
+        
+        @property
+        def dst_element(self) -> VirtualNetworkElement:
+            return self._route.to_element
+
+        @property
+        def lp_variable_name(self) -> str:
+            return self._lp_variable_name
+        
+        @property
+        def route(self) -> Route:
+            return self._route
+        
+        @property
+        def cost(self) -> float:
+            return self._cost
+
+        def __str__(self):
+            return f"LPRoute '{self.lp_variable_name}', cost={self.cost} = {self.src_element.get_name()}:{self.route.via_interface.name} -> {self.dst_element.get_name()}:{self.route.dst_interface.name}"
+
+        def __repr__(self) -> str:
+            return self.__str__()
+
+    def __init__(self):
+        self._variable_to_route = dict[str, LPNetwork.LPRoute]()
+        self._route_to_variable = dict[Route, str]()
+        self._routes = list[LPNetwork.LPRoute]()
     
-    # To create such method, we need to understand the network engineering problem and how to represent it as a Linear
-    # Programming problem.
+    def add_route(self, lp_route: LPRoute):
+        self._routes.append(lp_route)
+        # Register route in lookup table
+        self._route_to_variable[lp_route.route] = lp_route.lp_variable_name
+        self._variable_to_route[lp_route.lp_variable_name] = lp_route
     
-    # 1) Each unique route in the virtual network should be represented as a variable in the Linear Programming problem.
-    route_to_variable = dict[Route, str]()
-    route_to_cost = dict[Route, float]()
-    for router in virtual_network.get_routers():
-        # For each router, add its routes to the dictionary if they do not exist yet                
-        for route in router.get_routes():
-            if route not in route_to_variable:
-                # Ensure that the route is between two different routers as we are interested in the cost of the route
-                if not isinstance(route.to_element, Router):
-                    continue
+    def get_lproute_from_variable(self, variable: str) -> "LPRoute":
+        return self._variable_to_route[variable]
 
-                # Name formatted as "x_<start>_<end>_<end_intf>"
-                route_to_variable[route] = f"x_{router.get_name()}_{route.to_element.get_name()}_{route.dst_interface.name}"
-                # Now, save also the cost of this route in the dictionary (the cost is the cost of the src interface!)
-                route_to_cost[route] = cast(RouterNetworkInterface, route.dst_interface).get_cost()
+    def get_variable_name_from_route(self, route: Route) -> str:
+        return self._route_to_variable[route]
 
-    # For each route, print the cost
-    for route, cost in route_to_cost.items():
-        print(f"Route {route} has cost {cost}")
-
-    # 2) The objective function should maximize the minimum utilization of the network interfaces.
-    objective_function = "maximize: "
+    def has_route(self, route: Route) -> bool:
+        return route in self._route_to_variable
     
-
-    # 99) FIXME: Create the Linear Programming task object and return it
-    return None # type: ignore
-    # return LPTask()
+    def get_lp_routes(self) -> list[LPRoute]:
+        return self._routes
+ 
