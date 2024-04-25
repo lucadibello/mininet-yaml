@@ -7,4 +7,5 @@ dependencies:
   - pyyaml=6.0.1
   - pip:
       - mininet==2.3.0.dev6
+      - ortools==9.9.3963
 prefix: /opt/conda/envs/mininet-yaml
