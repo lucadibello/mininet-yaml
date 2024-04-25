@@ -55,12 +55,13 @@ def decodeTopology(file_path: str) -> NetworkTopology:
             raise ValueError(f"Error while validating the network configuration: {msg}")
 
         # Now, validate the demands of the network (if any)
+        demands = []
         if "demands" in data:
             demands, status, msg = validate_demands(data["demands"], hosts, routers)
             if not status:
                 raise ValueError(f"Error while validating the YAML file: {msg}")
 
         # Build network topology
-        return NetworkTopology(routers=routers, hosts=hosts)
+        return NetworkTopology(routers=routers, hosts=hosts, demands=demands)
     except ValidationError as e:
         raise ValueError(f"Invalid YAML file: {e}")

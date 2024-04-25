@@ -30,8 +30,13 @@ def lp_task_from_virtual_network(virtual_network: VirtualNetwork) -> LPTask:
                 # Now, save also the cost of this route in the dictionary (the cost is the cost of the src interface!)
                 route_to_cost[route] = cast(RouterNetworkInterface, route.dst_interface).get_cost()
 
+    # For each route, print the cost
+    for route, cost in route_to_cost.items():
+        print(f"Route {route} has cost {cost}")
+
     # 2) The objective function should maximize the minimum utilization of the network interfaces.
     objective_function = "maximize: "
+    
 
     # 99) FIXME: Create the Linear Programming task object and return it
     return None # type: ignore

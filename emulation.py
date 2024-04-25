@@ -30,7 +30,9 @@ def main():
     try:
         topology = decodeTopology(file_path)
         Logger().info(
-            f"Network topology loaded. Found {len(topology.get_routers())} routers and {len(topology.get_hosts())} hosts among {len(topology.get_subnets())} subnets. Total links: { topology.get_total_links()}"
+            f"Network topology loaded. Found {len(topology.get_routers())} routers and {len(topology.get_hosts())} hosts among {len(topology.get_subnets())} subnets. "
+            f"Total demands: {len(topology.get_demands())}, "
+            f"Total links: { topology.get_total_links()}"
         )
 
         # Now, handle what the user wants to do with the network topology
@@ -46,20 +48,32 @@ def main():
             Logger().debug("Creating virtual network...")
             # Create and virtualize decoded topology
             easy_mn, virtual_network = create_network_from_virtual_topology(topology)
-
-            # If user has requested to print the LP problem or print the goodput, do not virtualize! 
-            if is_lp or is_print_goodput:
-                Logger().info("Network virtualization skipped. Generating LP problem...")
+            
+            # Check if we need to solve the LP problem before starting the network
+            if len(topology.get_demands()) > 0:
                 lptask = lp_task_from_virtual_network(virtual_network)
+                # If user has requested to print the LP problem or print the goodput, do not virtualize! 
+                if is_lp or is_print_goodput:
+                    Logger().info("Network virtualization skipped. Generating LP problem...")
 
-                # Print the LP problem in CPLEX format
-                if is_lp:
-                    Logger().info("LP problem generated. Output is displayed below.")
-                    print(lptask.to_cplex())
+                    # Print the LP problem in CPLEX format
+                    if is_lp:
+                        Logger().info("LP problem generated. Output is displayed below.")
+                        raise NotImplementedError("LP problem not implemented yet.")
+                        print(lptask.to_cplex())
+                    else:
+                        raise NotImplementedError("Goodput analysis not implemented yet.")
                 else:
-                    raise NotImplementedError("Goodput analysis not implemented yet.")
+                    # We need to virtualize the network but also apply the Traffic Control rules
+                    raise NotImplementedError("Traffic Control not implemented yet.")
+                    try:
+                        easy_mn.start_network()
+                        # FIXME: easy_mn.apply_traffic_control()
+                        easy_mn.start_shell()
+                    finally:
+                        easy_mn.stop_network()
             else:
-                # Now, start the virtual network and open the CLI
+                # No LP needed, so we can start right away the virtual network
                 try:
                     easy_mn.start_network()
                     easy_mn.start_shell()

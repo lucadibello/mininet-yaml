@@ -1,5 +1,6 @@
 from typing import Sequence, cast
 from modules.models.network_elements import (
+    Demand,
     Link,
     NetworkElement,
     Host,
@@ -15,9 +16,10 @@ class NetworkTopology:
     This class represents the network topology of the virtual network
     """
 
-    def __init__(self, routers: list[Router], hosts: list[Host]):
+    def __init__(self, routers: list[Router], hosts: list[Host], demands: list[Demand] = []):
         self._routers = routers
         self._hosts = hosts
+        self._demands = demands
 
         # keep track of all the subnets in the network and the network elements that are part of them
         self._subnets: list[Ipv4Subnet] = []
@@ -82,7 +84,7 @@ class NetworkTopology:
                             source_interface.get_cost()
                             != destination_interface.get_cost()
                         ):
-                            Logger().warning(
+                            Logger().info(
                                 f"Found cost discrepancy between "
                                 f"{a.get_name()}"
                                 f"(inet: {source_interface.get_name()}, "
@@ -275,3 +277,6 @@ class NetworkTopology:
 
     def get_subnets(self):
         return self._subnets
+
+    def get_demands(self):
+        return self._demands
