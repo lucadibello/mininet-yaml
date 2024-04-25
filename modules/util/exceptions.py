@@ -3,3 +3,6 @@ class ValidationError(Exception):
 
 class NetworkError(Exception):
     pass
+
+class UnavailableSolverError(Exception):
+    pass
