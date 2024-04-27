@@ -390,6 +390,14 @@ class VirtualNetworkTopology(Topo):
                         host_vintf,
                     )
                 )
+                host.add_route(
+                    Route(
+                        host_endpoint.interface.get_subnet(),
+                        host_vintf,
+                        router,
+                        router_vintf,
+                    )
+                )
 
                 # Add default gateway for the host
                 host.set_gateway(
@@ -422,13 +430,19 @@ class VirtualNetworkTopology(Topo):
                     )
                     switch_intf_name = f"{switch}-eth{switch_intf_counter}"
 
+                    # Read the virtual element from the network
+                    virt_host = virtual_network.get(host.entity.get_name())
+                    if virt_host is None:
+                        raise ValueError(
+                            f"Virtual host {host.entity.get_name()} not found in the virtual network. There is a problem with the network topology."
+                        )
+
                     Logger().debug(
                         f"Connecting host {host.entity.get_name()}:{host.interface.get_name()} to switch {switch}:eth{switch_intf_counter}..."
                     )
 
                     # Increment the counter for the switch interface
                     switch_intf_counter += 1
-
 
                     # Add link between host and switch
                     self.addLink(
@@ -456,9 +470,32 @@ class VirtualNetworkTopology(Topo):
                     host_vintf = VirtualNetworkInterface(
                         name=host_intf_name, physical_interface=host.interface
                     )
+                    switch_vintf = VirtualNetworkInterface(
+                        name=switch_intf_name, physical_interface=SwitchInterface(switch_intf_name)
+                    )
 
                     # Register the virtual interfaces used in the link
                     virt_host.add_virtual_interface(host_vintf)
+
+                    # Register route in the switch
+                    virt_switch.add_route(
+                        Route(
+                            subnet,
+                            switch_vintf,
+                            virt_host,
+                            host_vintf 
+                        )
+                    )
+
+                    # Register route in host
+                    virt_host.add_route(
+                        Route(
+                            subnet,
+                            host_vintf,
+                            virt_switch,
+                            switch_vintf
+                        )
+                    )
 
                 # Now, we need also to connect the switch to the routers of the subnet
                 for router in subnet.get_routers():
@@ -502,9 +539,13 @@ class VirtualNetworkTopology(Topo):
                     router_vintf = VirtualNetworkInterface(
                         name=router_intf_name, physical_interface=router.interface
                     )
+                    switch_vintf = VirtualNetworkInterface(
+                        name=switch_intf_name, physical_interface=SwitchInterface(switch_intf_name)
+                    )
 
                     # Register the virtual interfaces used in the link
                     virt_router.add_virtual_interface(router_vintf)
+                    
 
                     # Register route to this subnet in the router via the switch interface
                     virt_router.add_route(
@@ -512,10 +553,17 @@ class VirtualNetworkTopology(Topo):
                             subnet,
                             router_vintf,
                             virt_switch,
-                            VirtualNetworkInterface(
-                                name=switch_intf_name,
-                                physical_interface=SwitchInterface(switch_intf_name),
-                            ),
+                            switch_vintf,
+                        )
+                    )
+
+                    # Register route in switch
+                    virt_switch.add_route(
+                        Route(
+                            subnet,
+                            switch_vintf,
+                            virt_router,
+                            router_vintf,
                         )
                     )
 

@@ -21,6 +21,7 @@ class ArgParser:
             "--draw",
             help="output to stdout the router topology as an undirected graph in Graphviz format",
             action="store_true",
+            required=False,
         )
         # Linear programming mode
         self._parser.add_argument(
@@ -28,6 +29,7 @@ class ArgParser:
             "--lp",
             help="output to stdout the network engineering optimization problem in CPLEX format generated from the specified demands in the YAML file",
             action="store_true",
+            required=False,
         )
         # Print optimal goodput archievable for each of the flows listed in the demands
         self._parser.add_argument(
@@ -35,6 +37,7 @@ class ArgParser:
             "--print",
             help="output to stdout the optimal goodput archievable for each of the flows listed in the demands in the YAML file (if any)",
             action="store_true",
+            required=False,
         )
         # Log directory
         self._parser.add_argument(

@@ -49,8 +49,8 @@ def main():
             
             # Check if we need to solve the LP problem before starting the network
             if len(topology.get_demands()) > 0:
-                lptask = traffic_engineering_task_from_virtual_network(virtual_network)
-                
+                ptask = traffic_engineering_task_from_virtual_network(topology, virtual_network)
+
                 # Check if we need to virtualize or not
                 if is_lp:
                     raise NotImplementedError("LP problem not implemented yet.")
@@ -59,7 +59,6 @@ def main():
                     raise NotImplementedError("Goodput analysis not implemented yet.")
                 else:
                     # We need to virtualize the network but also apply the Traffic Control rules
-                    raise NotImplementedError("Traffic Control not implemented yet.")
                     try:
                         easy_mn.start_network()
                         # FIXME: easy_mn.apply_traffic_control()
