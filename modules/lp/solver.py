@@ -33,14 +33,13 @@ class GLOPSolver():
             self.objective_value = objective_value
             self.variables = variables
 
-    def __init__(self, lp_task: LPTask) -> None:
+    def __init__(self) -> None:
         solver = pywraplp.Solver.CreateSolver("GLOP")
         if not solver:
             raise UnavailableSolverError("GLOB solver unavailable.")
         
         # Save parameters
         self._solver = solver
-        self._lp_task = lp_task
 
     @property
     def solver(self):

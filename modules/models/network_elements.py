@@ -52,6 +52,9 @@ class NetworkInterface:
             and self._mask == value._mask
         )
 
+    def __hash__(self):
+        return hash((self._name, self._ip, self._mask))
+
     def __str__(self):
         return f"Interface(name={self._name}, subnet=({self._ip}/{self._mask}))"
 
@@ -83,16 +86,19 @@ class RouterNetworkInterface(NetworkInterface):
     def __repr__(self):
         return self.__str__()
 
-    def __eq__(self, value: object) -> bool:
-        if not isinstance(value, RouterNetworkInterface):
-            return False
-        return super().__eq__(value) and self._cost == value._cost
-
     def get_cost(self):
         return self._cost
 
     def set_cost(self, cost: int):
         self._cost = cost
+    
+    def __hash__(self):
+        return hash((self._name, self._ip, self._mask, self._cost))
+    
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, RouterNetworkInterface):
+            return False
+        return super().__eq__(value) and self._cost == value._cost
 
 
 class Link:

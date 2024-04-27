@@ -19,6 +19,14 @@ class VirtualNetworkInterface:
     @property
     def physical_interface(self) -> NetworkInterface:
         return self._physical_interface
+    
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, VirtualNetworkInterface):
+            return False
+        return self.name == other.name and self.physical_interface == other.physical_interface
+    
+    def __hash__(self) -> int:
+        return hash((self.name, self.physical_interface))
 
 
 class Gateway:
@@ -65,6 +73,14 @@ class VirtualNetworkElement:
 
     def get_routes(self) -> list["Route"]:
         return self._routes
+    
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, VirtualNetworkElement):
+            return False
+        return self.get_name() == other.get_name() and self.get_physical_element() == other.get_physical_element()
+
+    def __hash__(self) -> int:
+        return hash((self.get_name(), self.get_physical_element()))
 
 
 #
@@ -187,14 +203,13 @@ class Route:
         if not isinstance(other, Route):
             return False
         return (
-            self._subnet == other.subnet
-            and self._via_interface == other.via_interface
+            self._via_interface == other.via_interface
             and self._to_element == other.to_element
             and self._dst_interface == other.dst_interface
         )
     
     def __hash__(self) -> int:
-        return hash((self._subnet, self._via_interface, self._to_element, self._dst_interface))
+        return hash((self._via_interface, self._to_element, self._dst_interface))
 
     def __str__(self) -> str:
         return f"Route for {self._subnet} available by exiting on intf {self._via_interface.name} (ip: {self._via_interface.physical_interface.get_ip()}) and, and reaching {self._to_element.get_name()} on interface {self._dst_interface.name} (ip: {self._dst_interface.physical_interface.get_ip()})"
