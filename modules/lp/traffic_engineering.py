@@ -5,7 +5,7 @@ from modules.lp.solver import GLOPSolver, LpSolver
 from modules.models.network_elements import NetworkElement
 from modules.models.topology import NetworkTopology
 from modules.util.logger import Logger
-from modules.virtualization.network_elements import VirtualNetwork, VirtualRouter, VirtualSwitch
+from modules.virtualization.network_elements import Route, VirtualNetwork, VirtualNetworkElement, VirtualRouter, VirtualSwitch
 
 from ortools.linear_solver.pywraplp import Objective, Variable
 
@@ -34,12 +34,15 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
             remaining = total_constraints
             while(remaining > 0):
                 str_id += chr(65 + (remaining % 26))
-                print(remaining, str_id)
                 remaining = remaining // 26
 
         # Return string
         total_constraints += 1
         return str_id
+
+    def is_path_valid(route: Route) -> bool:
+        return isinstance(route.to_element, VirtualRouter) or isinstance(route.to_element, VirtualSwitch) and route.is_registered
+
 
     # To create such method, we need to understand the network engineering problem and how to represent it as a Linear
     # Programming problem.
@@ -96,7 +99,7 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
         virt_element = get_virt(src)
 
         # We know that an element cannot push more than its maximum transmission rate
-        minimization_constraint_id = f"r_{next_alpha_id()}"
+        minimization_constraint_id = f"min_{next_alpha_id()}"
         constraint = glop.solver.Constraint(-LpSolver.INFINITY, 0, minimization_constraint_id)
         constraint.SetCoefficient(variable_lookup["min_r"], 1)
 
@@ -104,7 +107,7 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
         constraint_str = "min_r - "
         found = False
         for idx, route in enumerate(virt_element.get_routes()):
-            if not (isinstance(route.to_element, VirtualRouter) or isinstance(route.to_element, VirtualSwitch)) or not route.is_registered:
+            if not is_path_valid(route):
                 continue
             
             # Get LP route name + ensure that a variable exists for that route
@@ -135,6 +138,12 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
     # Now, explore the network and build the flow constraints between the routers
     print("Setting up other constraints for each flow demand...")
     total_constraints = 0
+    
+    # Explore the graph starting from SRC, and traverse all the routes while creating the constraints
+    queue = []
+    previous = dict[VirtualNetworkElement, list[tuple[VirtualNetworkElement, list[LPNetwork.LPRoute]]]]()
+    visited = set()
+    out_routes = dict[VirtualNetworkElement, list[LPNetwork.LPRoute]]()
 
     # Starting from each demand, we need to build the constraints for the flow
     for src, demands in demands_per_node:
@@ -146,30 +155,82 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
         # If we have multiple demands, we select the strictest one
         strictest_demand = min(demands, key=lambda x: x.maximumTransmissionRate)
 
-        # Explore the graph starting from SRC, and traverse all the routes while creating the constraints
-        queue = [virt_element]
+        # Add the entry of the default element
+        if virt_element not in visited:
+            visited.add(virt_element)
+            previous[virt_element] = []
+ 
+        # Explore the graph!
         while len(queue) > 0:
             # Get the current element
             current_element = queue.pop(0)
             
-            if not isinstance(current_element, VirtualRouter):
+            print(f"Exploring neighborhood of element {current_element.get_name()} letting a max flow of {strictest_demand.maximumTransmissionRate}")
+
+            # Create the constraint
+            constraint_id = next_alpha_id()
+            constraint = glop.solver.Constraint(0, 0, constraint_id)
+
+            # Now, explore the whole neighborhood of the current element and generate the constraints: total input = total output
+            src_neighborhood = lp_network.get_adjacency_lookup_table()[current_element]
+            for dst, routes_to_dst in src_neighborhood.items():
+                # If the dst is not visited, we must add it to the queue
+                if dst not in visited:
+                    queue.append(dst)
+                    visited.add(dst)
+                    
+                    # Assert that dst is has no previous entry
+                    assert dst not in previous
+                    
+                    # Create the entry in the previous dictionary
+                    previous[dst] = [] 
+
+                # Save the previous element
+                previous[dst].append((current_element, routes_to_dst)) 
+
+                # Register all the routes that are going out of the current element
+                if current_element not in out_routes:
+                    out_routes[current_element] = []
+                out_routes[current_element].extend(routes_to_dst) 
+    
+    # For each element, we must create the constraints
+    for src, _ in demands_per_node:
+        # Get the virtual element
+        virt_elem = get_virt(src)
+
+        # Create variable with the current demand
+        var_name = f"dem_{src.get_name()}"
+        variable_lookup[var_name] = glop.solver.NumVar(0, strictest_demand.maximumTransmissionRate, f"dem_{src.get_name()}")
+        task.add_variable(var_name, 0, strictest_demand.maximumTransmissionRate)
+
+        # The current demand - all the output flows = 0
+        constraint_id = f"src_{next_alpha_id()}"
+        constraint = glop.solver.Constraint(-LpSolver.INFINITY, 0, constraint_id)
+
+        # Add positive coefficients to the constraint: max flow - all the output flows = 0 (route whole flow)
+        constraint.SetCoefficient(variable_lookup[var_name], 1)
+        constraint_str = f"{var_name}"
+        
+        # Cycle through all output routes
+        for out_route in virt_elem.get_routes():
+            print("Checking route: ", out_route)
+            if not is_path_valid(out_route):
                 continue
             
-            print(f"\tExploring neighborhood of element {current_element.get_name()} letting a max flow of {strictest_demand.maximumTransmissionRate}")
+            # Get variable name + lp route
+            out_route_name = lp_network.get_variable_name_from_route(out_route)
+            lp_route = lp_network.get_lproute_from_variable(out_route_name)
 
-            # Add the constraint to the task
-            constraint_str = ""
+            # Assert that lp route exists
+            assert lp_route != None
 
-            # Get the routes from the current element
-            for dst, next_layer_routes in lp_network.get_adjacency_lookup_table()[current_element].values():
-                # Create the constraint
-                constraint_id = next_alpha_id()
-                constraint = glop.solver.Constraint(0, strictest_demand.maximumTransmissionRate, constraint_id)
+            # Create the coefficient
+            constraint.SetCoefficient(variable_lookup[out_route_name], -1) 
+            constraint_str += f" - {out_route_name}"
 
-                # Add the constraint to the objective function
-                print(f"* added new constraint for {constraint_id}: {constraint_str}")
-
-            # constraint_str += f" - { }"
+        # Add constraint to the task
+        constraint_str += f" >= 0"
+        task.add_constraint(constraint_id, constraint_str)
 
     # Print in CPLEX format
     print(task.to_cplex())
