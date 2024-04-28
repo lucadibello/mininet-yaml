@@ -46,7 +46,7 @@ def main():
             Logger().debug("Creating virtual network...")
             # Create and virtualize decoded topology
             easy_mn, virtual_network = create_network_from_virtual_topology(topology)
-            
+
             # Check if we need to solve the LP problem before starting the network
             if len(topology.get_demands()) > 0:
                 ptask = traffic_engineering_task_from_virtual_network(topology, virtual_network)

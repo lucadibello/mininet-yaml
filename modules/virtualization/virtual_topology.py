@@ -486,7 +486,6 @@ class VirtualNetworkTopology(Topo):
                             host_vintf 
                         )
                     )
-
                     # Register route in host
                     virt_host.add_route(
                         Route(
@@ -556,7 +555,6 @@ class VirtualNetworkTopology(Topo):
                             switch_vintf,
                         )
                     )
-
                     # Register route in switch
                     virt_switch.add_route(
                         Route(

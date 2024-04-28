@@ -2,7 +2,7 @@ from typing import Iterator, Optional, cast
 from modules.lp.solver import LpSolver
 from modules.models.network_elements import RouterNetworkInterface
 from modules.util.logger import Logger
-from modules.virtualization.network_elements import Route, VirtualNetworkElement, VirtualRouter
+from modules.virtualization.network_elements import Route, VirtualNetworkElement, VirtualNetworkInterface, VirtualRouter
 
 class LPTask():
     """
@@ -19,7 +19,22 @@ class LPTask():
         """
         This method returns a string with the Linear Programming problem in CPLEX format.
         """
-        raise NotImplementedError("Still in development!")
+        obj_type = "Maximize" if self.is_maximization else "Minimize"
+        cplex = ""
+        cplex += f"{obj_type}\n"
+        cplex += f"\tobj: {self.objective}\n"
+        cplex += "\n"
+        cplex += "Subject To\n"
+        for name, constraint in self.subject_to.items():
+            cplex += f"\t{name}: {constraint}\n"
+        cplex += "\n"
+        cplex += "Bounds\n"
+        for name, bounds in self.variables.items():
+            cplex += f"\t{bounds[0]} <= {name} <= {bounds[1]}\n"
+        cplex += "End"
+        
+        # Return cplex problem as string
+        return cplex        
 
     def set_objective(self, objective: str, is_maximization: bool = True):
         """
@@ -28,7 +43,7 @@ class LPTask():
         self.objective = objective
         self.is_maximization = is_maximization
         
-    def add_constraint(self, constraint: str, name: str):
+    def add_constraint(self, name: str, constraint: str):
         """
         This method allows to add a new constraint to the Linear Programming problem.
         """
@@ -103,17 +118,20 @@ class LPNetwork():
 
         # Undirected graph of routes using adjacency list
         self._adjacency_list = dict[VirtualNetworkElement, dict[VirtualNetworkElement, list[LPNetwork.LPRoute]]]()
-    
+
     def add_route(self, lp_route: LPRoute):
         # Reverse the route to add it in the opposite direction
         lp_route_rev = LPNetwork.LPRoute(lp_route.dst_element, lp_route.route.reverse(lp_route.src_element))
+
+        # Set a negative cost for the reverse route
+        lp_route_rev._cost = -lp_route.cost
         
         # Register both routes in the lookup table(s)
         for lpr in [lp_route, lp_route_rev]:
             # Log both routes
             self._route_to_variable[lpr.route] = lpr.lp_variable_name
             self._variable_to_route[lpr.lp_variable_name] = lpr
-
+ 
             # If source element not present, entire entry is not present
             if lpr.src_element not in self._adjacency_list:
                 self._adjacency_list[lpr.src_element] = dict[VirtualNetworkElement, list[LPNetwork.LPRoute]]()
@@ -124,19 +142,22 @@ class LPNetwork():
         
             # Add route in the given direction
             self._adjacency_list[lpr.src_element][lpr.dst_element].append(lpr)
+            
+            # Append only routes that are local to the source element
             self._routes.append(lpr)
 
-    def traverse_network_bfs(self, start_element: Optional[VirtualNetworkElement] = None) -> Iterator[tuple[VirtualNetworkElement, LPRoute]]:
+    def traverse_network_bfs(self, start_element: Optional[VirtualNetworkElement] = None) -> dict[VirtualNetworkElement, list[tuple[VirtualNetworkElement, LPRoute]]]:
         """
         This method allows to traverse the entire network using a Breadth-First Search algorithm, yielding each new element along with the LPRoute object that represents the connection
         between the current element and the previous element.
         """
         visited = set[VirtualNetworkElement]()
         queue = list[VirtualNetworkElement]()
+        previous = dict[VirtualNetworkElement, list[tuple[VirtualNetworkElement, LPNetwork.LPRoute]]]()
 
         # If the adjacency list is empty, we have no routes to traverse so we can simply return an empty list
         if len(self._adjacency_list) == 0:
-            return list[tuple[VirtualNetworkElement, LPNetwork.LPRoute]]()
+            return {}
         
         # Append to the queue a random element (in this case, the first element of the adjacency list)
         if start_element is not None:
@@ -153,14 +174,22 @@ class LPNetwork():
             if current not in visited:
                 # Mark the element as visited
                 visited.add(current)
+                previous[current] = []
                 
                 # Yield the current element and the LPRoute object
                 for dst_element, routes in self._adjacency_list[current].items():
-                    for route in routes:
+                    for lp_route in routes:
                         # Continue exploring only if we have found an unvisited element
                         if dst_element not in visited:
-                            yield (dst_element, route)
                             queue.append(dst_element)
+
+                            # Register the previous element
+                            if dst_element not in previous:
+                                previous[dst_element] = []
+                            previous[dst_element].append((current, lp_route))
+            
+        # Return the previous dictionary (reverse graph)
+        return previous
 
     def get_lproute_from_variable(self, variable: str) -> LPRoute:
         return self._variable_to_route[variable]
@@ -169,7 +198,8 @@ class LPNetwork():
         return self._route_to_variable[route]
 
     def has_route(self, route: Route) -> bool:
-        return route in self._route_to_variable
+        data = (route.via_interface, route.to_element, route.via_interface, route.dst_interface)
+        return False
 
     def get_lp_routes(self) -> list[LPRoute]:
         return self._routes
