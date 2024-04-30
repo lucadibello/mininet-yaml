@@ -428,7 +428,8 @@ class VirtualNetworkTopology(Topo):
                     host_intf_name = (
                         f"{host.entity.get_name()}-{host.interface.get_name()}"
                     )
-                    switch_intf_name = f"{switch}-eth{switch_intf_counter}"
+                    switch_phi_intf_name = f"eth{switch_intf_counter}"
+                    switch_intf_name = f"{switch}-{switch_phi_intf_name}"
 
                     # Read the virtual element from the network
                     virt_host = virtual_network.get(host.entity.get_name())
@@ -471,7 +472,7 @@ class VirtualNetworkTopology(Topo):
                         name=host_intf_name, physical_interface=host.interface
                     )
                     switch_vintf = VirtualNetworkInterface(
-                        name=switch_intf_name, physical_interface=SwitchInterface(switch_intf_name)
+                        name=switch_intf_name, physical_interface=SwitchInterface(switch_phi_intf_name)
                     )
 
                     # Register the virtual interfaces used in the link
@@ -502,7 +503,8 @@ class VirtualNetworkTopology(Topo):
                     router_intf_name = (
                         f"{router.entity.get_name()}-{router.interface.get_name()}"
                     )
-                    switch_intf_name = f"{switch}-eth{switch_intf_counter}"
+                    switch_phi_intf_name = f"eth{switch_intf_counter}"
+                    switch_intf_name = f"{switch}-{switch_phi_intf_name}"
 
                     Logger().debug(
                         f"Connecting router {router.entity.get_name()}:{router.interface.get_name()} to switch {switch}:eth{switch_intf_counter}..."
@@ -539,7 +541,7 @@ class VirtualNetworkTopology(Topo):
                         name=router_intf_name, physical_interface=router.interface
                     )
                     switch_vintf = VirtualNetworkInterface(
-                        name=switch_intf_name, physical_interface=SwitchInterface(switch_intf_name)
+                        name=switch_intf_name, physical_interface=SwitchInterface(switch_phi_intf_name)
                     )
 
                     # Register the virtual interfaces used in the link
