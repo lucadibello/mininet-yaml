@@ -134,10 +134,7 @@ class LPNetwork():
 		# Reverse the route to add it in the opposite direction
 		lp_route_rev = LPNetwork.LPRoute(lp_route.dst_element, lp_route.route.reverse(lp_route.src_element))
 
-		# Set a negative cost for the reverse route
-		lp_route_rev._cost = -lp_route.cost
-
-		# Save reverse route
+		# Save reverse route with the same cost as the original route
 		self._reverse_routes[lp_route.route] = lp_route_rev
 		self._reverse_routes[lp_route_rev.route] = lp_route
 
