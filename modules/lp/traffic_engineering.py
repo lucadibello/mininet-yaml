@@ -4,7 +4,6 @@ from modules.lp.lp_models import LPNetwork, LPTask
 from modules.lp.solver import GLOPSolver
 from modules.models.network_elements import Demand, NetworkElement
 from modules.models.topology import NetworkTopology
-from modules.util.logger import Logger
 from modules.virtualization.network_elements import VirtualHost, VirtualNetwork, VirtualNetworkElement, VirtualRouter, VirtualSwitch
 
 from ortools.linear_solver.pywraplp import Objective, Variable
@@ -23,7 +22,7 @@ def next_alpha_id(count: int, start_letter: str = "A") -> str:
             remaining = remaining // 26
     return str_id
 
-def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, virtual_network: VirtualNetwork) -> Tuple[LPNetwork, LPTask]:
+def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, virtual_network: VirtualNetwork) -> Tuple[GLOPSolver, LPTask]:
     """
     This function takes a VirtualNetwork object and returns a Linear Programming task object that represents the traffic
     engineering problem of the virtual network. The Linear Programming task should be ready to be solved by an external
@@ -308,7 +307,7 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
         task.add_constraint_group(flow_group)
     
     # Return the generated lp_network and the relative task describing the traffic engineering problem
-    return lp_network, task
+    return (glop, task)
 
 def compute_in_out_paths(virtual_network: VirtualNetwork, lp_network: LPNetwork) -> tuple[dict[VirtualNetworkElement, list[LPNetwork.LPRoute]], dict[VirtualNetworkElement, list[LPNetwork.LPRoute]]]:
     # We build the in_routes and out_routes dictionaries to store the input and output routes of each element
