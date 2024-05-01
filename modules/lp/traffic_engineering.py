@@ -263,7 +263,7 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
 			# - if element is directly connected to destination, the overall flow must also be equal to the maximum transmission rate of that flow
 			# - if element is not connected to source or destination, the overall flow must be equal to 0 as we need to switch its entirety to the next hop
 			lambda_var_name = f"{SRC_OVERALL_FLOW_NAME}_{flow_name}" 
-			constraint_name = f"{flow_name}_{ROUTE_CAPACITY}_{element.get_name()}"
+			constraint_name = f"{flow_name}_{ROUTE_CAPACITY_CONSTRAINT}_{element.get_name()}"
 
 			# build or-tools constraint
 			constraint = glop.solver.Constraint(0, 0, constraint_name)
@@ -275,15 +275,15 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
 				constraint.SetCoefficient(variable_lookup[out_var_name], -1)
 
 			# create constraint in cplex syntax
-			base_constraint = f"{f' + '.join(in_var_names_capacity)} - {f' - '.join(out_var_names_capacity)}{1} = 0"
+			base_constraint = f' + '.join(in_var_names_capacity) + " - " + f' - '.join(out_var_names_capacity)
 			if element in router_src:
-				capacity_constraint_group.add_constraint(constraint_name, base_constraint.format(f" + {lambda_var_name}"))
+				capacity_constraint_group.add_constraint(constraint_name, base_constraint + f" + {lambda_var_name} = 0")
 				constraint.SetCoefficient(variable_lookup[lambda_var_name], 1)
 			elif element in router_dst: 
-				capacity_constraint_group.add_constraint(constraint_name, base_constraint.format(f" - {lambda_var_name}"))
+				capacity_constraint_group.add_constraint(constraint_name, base_constraint + f" - {lambda_var_name} = 0")
 				constraint.SetCoefficient(variable_lookup[lambda_var_name], -1)
 			else:
-				capacity_constraint_group.add_constraint(constraint_name, base_constraint.format(""))
+				capacity_constraint_group.add_constraint(constraint_name, base_constraint + f" = 0")
 			
 		# Add the constraint group to the task
 		task.add_constraint_group(mutex_constraint_group)

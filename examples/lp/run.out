@@ -1,24 +1,24 @@
 Problem:    
 Rows:       89
-Columns:    79 (30 integer, 30 binary)
-Non-zeros:  282
+Columns:    67 (30 integer, 30 binary)
+Non-zeros:  288
 Status:     INTEGER OPTIMAL
-Objective:  obj = 4 (MAXimum)
+Objective:  obj = 3.133333333 (MAXimum)
 
    No.   Row name        Activity     Lower bound   Upper bound
 ------ ------------    ------------- ------------- -------------
-     1 x_min                       0                           0 
-     2 y_min                       0                           0 
+     1 x_min               -0.133333                           0 
+     2 y_min               -0.333333                           0 
      3 z_min                       0                           0 
      4 x_flow                      0             0             = 
      5 y_flow                      0             0             = 
      6 z_flow                      0             0             = 
      7 x_in_r1                     0                           1 
-     8 x_in_r2                     0                           1 
+     8 x_in_r2                     1                           1 
      9 x_in_r3                     1                           1 
     10 x_in_r4                     1                           1 
     11 x_out_r1                    1                           1 
-    12 x_out_r2                    0                           1 
+    12 x_out_r2                    1                           1 
     13 x_out_r3                    1                           1 
     14 x_out_r4                    0                           1 
     15 y_in_r1                     1                           1 
@@ -49,108 +49,120 @@ Objective:  obj = 4 (MAXimum)
     40 z_in_out_r2                 0             0             = 
     41 z_in_out_r3                -1            -1             = 
     42 z_in_out_r4                 1             1             = 
-    43 x_cap_r1                    0             0             = 
-    44 x_cap_r2                    0             0             = 
-    45 x_cap_r3                    0             0             = 
-    46 x_cap_r4                    0             0             = 
-    47 y_cap_r1                    0             0             = 
-    48 y_cap_r2                    0             0             = 
-    49 y_cap_r3                    0             0             = 
-    50 y_cap_r4                    0             0             = 
-    51 z_cap_r1                    0             0             = 
-    52 z_cap_r2                    0             0             = 
-    53 z_cap_r3                    0             0             = 
-    54 z_cap_r4                    0             0             = 
+    43 x_capacity_r1
+                                   0             0             = 
+    44 x_capacity_r2
+                                   0             0             = 
+    45 x_capacity_r3
+                                   0             0             = 
+    46 x_capacity_r4
+                                   0             0             = 
+    47 y_capacity_r1
+                                   0             0             = 
+    48 y_capacity_r2
+                                   0             0             = 
+    49 y_capacity_r3
+                                   0             0             = 
+    50 y_capacity_r4
+                                   0             0             = 
+    51 z_capacity_r1
+                                   0             0             = 
+    52 z_capacity_r2
+                                   0             0             = 
+    53 z_capacity_r3
+                                   0             0             = 
+    54 z_capacity_r4
+                                   0             0             = 
     55 capacity_r3_r4_eth1
-                                   0                          10 
+                                  10                          10 
     56 capacity_r2_r1_eth0
-                                   0                           3 
+                                   2                           3 
     57 capacity_r3_r1_eth1
-                                   0                          10 
+                                   8                          10 
     58 capacity_r4_r2_eth2
-                                   0                          10 
+                                  10                          10 
     59 capacity_r3_r2_eth1
-                                   0                           8 
-    60 x_cap_r4_r3_eth2
+                                   8                           8 
+    60 x_capacity_r4_r3_eth2
                                    0                           0 
-    61 x_cap_r1_r2_eth0
+    61 x_capacity_r1_r2_eth0
                                    0                           0 
-    62 x_cap_r2_r1_eth0
+    62 x_capacity_r2_r1_eth0
                                    0                           0 
-    63 x_cap_r1_r3_eth0
-                                 -10                           0 
-    64 x_cap_r3_r1_eth1
+    63 x_capacity_r1_r3_eth0
+                                  -2                           0 
+    64 x_capacity_r3_r1_eth1
                                    0                           0 
-    65 x_cap_r2_r4_eth0
+    65 x_capacity_r2_r4_eth0
+                                  -2                           0 
+    66 x_capacity_r4_r2_eth2
                                    0                           0 
-    66 x_cap_r4_r2_eth2
+    67 x_capacity_r2_r3_eth1
                                    0                           0 
-    67 x_cap_r2_r3_eth1
+    68 x_capacity_r3_r2_eth1
                                    0                           0 
-    68 x_cap_r3_r2_eth1
+    69 x_capacity_r3_r4_eth1
                                    0                           0 
-    69 x_cap_r3_r4_eth1
-                                 -10                           0 
-    70 y_cap_r4_r3_eth2
+    70 y_capacity_r4_r3_eth2
                                    0                           0 
-    71 y_cap_r1_r2_eth0
+    71 y_capacity_r1_r2_eth0
                                    0                           0 
-    72 y_cap_r2_r1_eth0
-                                  -3                           0 
-    73 y_cap_r1_r3_eth0
+    72 y_capacity_r2_r1_eth0
+                                  -1                           0 
+    73 y_capacity_r1_r3_eth0
                                    0                           0 
-    74 y_cap_r3_r1_eth1
+    74 y_capacity_r3_r1_eth1
                                    0                           0 
-    75 y_cap_r2_r4_eth0
+    75 y_capacity_r2_r4_eth0
                                    0                           0 
-    76 y_cap_r4_r2_eth2
-                                 -10                           0 
-    77 y_cap_r2_r3_eth1
+    76 y_capacity_r4_r2_eth2
+                                  -8                           0 
+    77 y_capacity_r2_r3_eth1
                                    0                           0 
-    78 y_cap_r3_r2_eth1
+    78 y_capacity_r3_r2_eth1
                                    0                           0 
-    79 y_cap_r3_r4_eth1
+    79 y_capacity_r3_r4_eth1
                                    0                           0 
-    80 z_cap_r4_r3_eth2
+    80 z_capacity_r4_r3_eth2
                                    0                           0 
-    81 z_cap_r1_r2_eth0
+    81 z_capacity_r1_r2_eth0
                                    0                           0 
-    82 z_cap_r2_r1_eth0
+    82 z_capacity_r2_r1_eth0
                                    0                           0 
-    83 z_cap_r1_r3_eth0
+    83 z_capacity_r1_r3_eth0
                                    0                           0 
-    84 z_cap_r3_r1_eth1
+    84 z_capacity_r3_r1_eth1
                                    0                           0 
-    85 z_cap_r2_r4_eth0
+    85 z_capacity_r2_r4_eth0
                                    0                           0 
-    86 z_cap_r4_r2_eth2
+    86 z_capacity_r4_r2_eth2
                                    0                           0 
-    87 z_cap_r2_r3_eth1
+    87 z_capacity_r2_r3_eth1
                                    0                           0 
-    88 z_cap_r3_r2_eth1
+    88 z_capacity_r3_r2_eth1
                                    0                           0 
-    89 z_cap_r3_r4_eth1
-                                 -10                           0 
+    89 z_capacity_r3_r4_eth1
+                                   0                           0 
 
    No. Column name       Activity     Lower bound   Upper bound
 ------ ------------    ------------- ------------- -------------
-     1 min_r                       1             0               
-     2 x                           1             0             1 
+     1 min_r                0.666667             0               
+     2 x                         0.8             0             1 
      3 y                           1             0             1 
-     4 z                           1             0             1 
-     5 lambda_x                   10             0            10 
+     4 z                    0.666667             0             1 
+     5 lambda_x                    8             0            10 
      6 lambda_y                    2             0             2 
-     7 lambda_z                   15             0            15 
+     7 lambda_z                   10             0            15 
      8 x_r2_r1_eth0 *              0             0             1 
      9 x_r3_r1_eth1 *              0             0             1 
     10 x_r1_r2_eth0 *              0             0             1 
     11 x_r4_r2_eth2 *              0             0             1 
-    12 x_r3_r2_eth1 *              0             0             1 
+    12 x_r3_r2_eth1 *              1             0             1 
     13 x_r4_r3_eth2 *              0             0             1 
     14 x_r1_r3_eth0 *              1             0             1 
     15 x_r2_r3_eth1 *              0             0             1 
-    16 x_r2_r4_eth0 *              0             0             1 
-    17 x_r3_r4_eth1 *              1             0             1 
+    16 x_r2_r4_eth0 *              1             0             1 
+    17 x_r3_r4_eth1 *              0             0             1 
     18 y_r2_r1_eth0 *              1             0             1 
     19 y_r3_r1_eth1 *              0             0             1 
     20 y_r1_r2_eth0 *              0             0             1 
@@ -177,84 +189,60 @@ Objective:  obj = 4 (MAXimum)
                                    0             0               
     40 x_cap_r1_r2_eth0
                                    0             0               
-    41 x_cap_r1_r3_eth01
-                                   0             0               
+    41 x_cap_r1_r3_eth0
+                                   8             0               
     42 x_cap_r4_r2_eth2
                                    0             0               
     43 x_cap_r3_r2_eth1
-                                   0             0               
+                                   8             0               
     44 x_cap_r2_r4_eth0
-                                   0             0               
-    45 x_cap_r2_r3_eth11
+                                   8             0               
+    45 x_cap_r2_r3_eth1
                                    0             0               
     46 x_cap_r4_r3_eth2
                                    0             0               
-    47 x_cap_r1_r3_eth0
+    47 x_cap_r3_r4_eth1
                                    0             0               
-    48 x_cap_r2_r3_eth1
+    48 y_cap_r2_r1_eth0
+                                   2             0               
+    49 y_cap_r3_r1_eth1
                                    0             0               
-    49 x_cap_r3_r4_eth11
+    50 y_cap_r1_r2_eth0
                                    0             0               
-    50 x_cap_r3_r4_eth1
+    51 y_cap_r1_r3_eth0
                                    0             0               
-    51 x_cap_r4_r3_eth21
+    52 y_cap_r4_r2_eth2
+                                   2             0               
+    53 y_cap_r3_r2_eth1
                                    0             0               
-    52 y_cap_r2_r1_eth0
+    54 y_cap_r2_r4_eth0
                                    0             0               
-    53 y_cap_r3_r1_eth1
+    55 y_cap_r2_r3_eth1
                                    0             0               
-    54 y_cap_r1_r2_eth0
+    56 y_cap_r4_r3_eth2
                                    0             0               
-    55 y_cap_r1_r3_eth01
+    57 y_cap_r3_r4_eth1
                                    0             0               
-    56 y_cap_r4_r2_eth2
+    58 z_cap_r2_r1_eth0
                                    0             0               
-    57 y_cap_r3_r2_eth1
+    59 z_cap_r3_r1_eth1
                                    0             0               
-    58 y_cap_r2_r4_eth0
+    60 z_cap_r1_r2_eth0
                                    0             0               
-    59 y_cap_r2_r3_eth11
+    61 z_cap_r1_r3_eth0
                                    0             0               
-    60 y_cap_r4_r3_eth2
+    62 z_cap_r4_r2_eth2
                                    0             0               
-    61 y_cap_r1_r3_eth0
+    63 z_cap_r3_r2_eth1
                                    0             0               
-    62 y_cap_r2_r3_eth1
+    64 z_cap_r2_r4_eth0
                                    0             0               
-    63 y_cap_r3_r4_eth11
+    65 z_cap_r2_r3_eth1
                                    0             0               
-    64 y_cap_r3_r4_eth1
+    66 z_cap_r4_r3_eth2
                                    0             0               
-    65 y_cap_r4_r3_eth21
-                                   0             0               
-    66 z_cap_r2_r1_eth0
-                                   0             0               
-    67 z_cap_r3_r1_eth1
-                                   0             0               
-    68 z_cap_r1_r2_eth0
-                                   0             0               
-    69 z_cap_r1_r3_eth01
-                                   0             0               
-    70 z_cap_r4_r2_eth2
-                                   0             0               
-    71 z_cap_r3_r2_eth1
-                                   0             0               
-    72 z_cap_r2_r4_eth0
-                                   0             0               
-    73 z_cap_r2_r3_eth11
-                                   0             0               
-    74 z_cap_r4_r3_eth2
-                                   0             0               
-    75 z_cap_r1_r3_eth0
-                                   0             0               
-    76 z_cap_r2_r3_eth1
-                                   0             0               
-    77 z_cap_r3_r4_eth11
-                                   0             0               
-    78 z_cap_r3_r4_eth1
-                                   0             0               
-    79 z_cap_r4_r3_eth21
-                                   0             0               
+    67 z_cap_r3_r4_eth1
+                                  10             0               
 
 Integer feasibility conditions:
 
@@ -262,8 +250,8 @@ KKT.PE: max.abs.err = 0.00e+00 on row 0
         max.rel.err = 0.00e+00 on row 0
         High quality
 
-KKT.PB: max.abs.err = 0.00e+00 on row 0
-        max.rel.err = 0.00e+00 on row 0
+KKT.PB: max.abs.err = 1.11e-16 on column 58
+        max.rel.err = 1.11e-16 on column 58
         High quality
 
 End of output
