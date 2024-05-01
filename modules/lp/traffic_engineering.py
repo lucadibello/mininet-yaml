@@ -1,4 +1,4 @@
-from typing import Optional, cast
+from typing import cast
 
 from modules.lp.lp_models import LPNetwork, LPTask
 from modules.lp.solver import GLOPSolver
@@ -53,28 +53,39 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
         # For each router, add its routes to the dictionary if they do not exist yet                
         for route in element.get_routes():
             # Print added route
-            if route.is_registered and \
-                not lp_network.has_route(route): 
+            if route.is_registered and not lp_network.has_route(route):
                 # Register the route in the LP network if not present
                 lp_network.add_route(LPNetwork.LPRoute(element, route))
 
     # Compute the in and out paths of each element to create the constraints
     in_routes, out_routes = compute_in_out_paths(virtual_network, lp_network)
 
+    def is_valid_route(lp_route: LPNetwork.LPRoute) -> bool:
+        return not isinstance(lp_route.route.to_element, VirtualSwitch) and not isinstance(lp_route.route.to_element, VirtualHost) and \
+                not isinstance(lp_route.src_element, VirtualSwitch) and not isinstance(lp_route.src_element, VirtualHost) 
+
+    # Now, get all lp_routes that do not connect to switches or hosts
+    core_lp_routes = [lp_route for lp_route in lp_network.get_lp_routes() if is_valid_route(lp_route)]
+
     # Load LP solver
     glop = GLOPSolver()
 
     # Create all variables needed for the LP problem
     variable_lookup = dict[str, Variable]()
-    for flow_name in flows.values():
-        for lp_route in lp_network.get_lp_routes():
+    for demand, flow_name in flows.items():
+        # Create variable for flow ratio of flow
+        variable_lookup[flow_name] = glop.solver.NumVar(0, 1, flow_name)
+        task.add_variable(flow_name, lower_bound=0, upper_bound=1)
+
+        # Create variables to keep track of actual flow on each flow
+        variable_lookup["lambda_" + flow_name] = glop.solver.NumVar(0, 1, "lambda_" + flow_name)
+        task.add_variable("lambda_" + flow_name, lower_bound=0, upper_bound=demand.maximumTransmissionRate)
+        
+        for lp_route in core_lp_routes:
             var_name = f"{flow_name}_{lp_route.lp_variable_name}"
             # Create variable in LP model + in LP task
             variable_lookup[var_name] = glop.solver.BoolVar(var_name)
             task.add_binary_variable(var_name)
-            # Create variable for flow ratio of flow
-            variable_lookup[flow_name] = glop.solver.NumVar(0, 1, flow_name)
-            task.add_variable(flow_name, lower_bound=0, upper_bound=1)
 
     # Define constraints to allow the maximization of the minimum effectiveness ratio
     variable_lookup["min_r"] = glop.solver.NumVar(0, 1, "min_r")
@@ -97,37 +108,11 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
     group = LPTask.LPConstraintGroup("Define how the ratio is computed for each flow")
     for demand, flow_name in flows.items():
         # Define var names
-        ratio_var_name = f"ratio_{flow_name}"
+        ratio_var_name = f"lambda_{flow_name}"
         # The transmission ratio * the cost of the route, must be equal to the maximum transmission rate
         group.add_constraint(f"{flow_name}_flow", f"{demand.maximumTransmissionRate} {flow_name} - {ratio_var_name} = 0")
     task.add_constraint_group(group)
 
-    # For each flow, create the right constraints for flow preservation on each path
-    for demand, flow_name in flows.items():
-        # Create a constraint group for each flow
-        flow_group = LPTask.LPConstraintGroup(f"Define default routes for source and destination of flow {flow_name}")
-
-        # The route connecting the source and the destination of the demand
-        # should always be selected by the solver
-        src = get_virt(demand.source)
-        dst = get_virt(demand.destination)
-
-        # Find all the out routes of src
-        src_routes = out_routes[src]
-        # Find all the in routes of dst
-        dst_routes = in_routes[dst]
-        # Now, for each route connected to source and destination
-        # set that at most one of them must be selected by the solver
-
-        src_var_names = [flow_name + '_' + route.lp_variable_name for route in src_routes]
-        dst_var_names = [flow_name + '_' + route.lp_variable_name for route in dst_routes]
-        
-        flow_group.add_constraint(f"{flow_name}_src", f"{' + '.join(src_var_names)} = 1")
-        flow_group.add_constraint(f"{flow_name}_dst", f"{' + '.join(dst_var_names)} = 1")
-
-        # Register constraint group
-        task.add_constraint_group(flow_group)
- 
     # For each router and switch, create a constraint
     # Now, we need to create a constraint for mutual exclusion for each flow: only one input route can be chosen
     for flow_name in flows.values():        
@@ -138,7 +123,12 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
             # Skip if for this element there are no input or output routes
             if len(in_routes[element]) == 0:
                 continue
-            src_var_names = [flow_name + '_' + route.lp_variable_name for route in in_routes[element]]
+            print("Element:", element.get_name())
+            print("Routes:", in_routes[element])
+
+            # Select only valid routes
+            valid_in_routes = [route for route in in_routes[element] if isinstance(route.src_element, VirtualRouter)]
+            src_var_names = [flow_name + '_' + route.lp_variable_name for route in valid_in_routes]
             in_mutex_group.add_constraint(f"{flow_name}_in_{element.get_name()}", f"{' + '.join(src_var_names)} <= 1")
 
         # Now, we need to create another constraint for mutual exclusion: only one output route can be chosen
@@ -151,20 +141,175 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
                 continue
 
             # Get all the variable names of the output routes which interconnect routers
-            src_var_names = [flow_name + '_' + route.lp_variable_name for route in out_routes[element]]
+            valid_out_routes = [route for route in out_routes[element] if isinstance(route.dst_element, VirtualRouter)]
+            src_var_names = [flow_name + '_' + route.lp_variable_name for route in valid_out_routes]
             out_mutex_group.add_constraint(f"{flow_name}_out_{element.get_name()}", f"{' + '.join(src_var_names)} <= 1")
-
-        # Now, provide mutual exclusion on both INPUT and OUTPUT routes: one node have only one input and one output route
-        for element in virtual_network.get_routers():
-            # For each element, list all the input and output routes
-            elem_in_routes = in_routes[element]
-            elem_out_routes = out_routes[element]
-
-            # FIXME: Total input = Total output
 
         # Add the constraint groups to the task
         task.add_constraint_group(in_mutex_group)
         task.add_constraint_group(out_mutex_group)
+    
+    # Now, provide mutual exclusion on both INPUT and OUTPUT routes: one node have only one input and one output route
+    src_dst_routers_per_flow = dict[str, tuple[list[VirtualRouter], list[VirtualRouter]]]()
+    # Extract list of sources and list of destinations
+    for demand, flow_name in flows.items():
+        # Create a list of sources and destinations
+        router_src = []
+        router_dst = []
+        for element in virtual_network.get_routers():
+            # Check if current element is:
+            # a) connected directly to the source demand
+            # b) connected directly to the destination demand
+            # c) connected to a switch that is connected to the source demand
+            # d) connected to a switch that is connected to the destination demand
+            for route in in_routes[element]:
+                if route.src_element == get_virt(demand.source):
+                    router_src.append(element)
+                elif route.src_element == get_virt(demand.destination):
+                    router_dst.append(element)
+                elif isinstance(route.src_element, VirtualSwitch):
+                    # Extract all in-routes of the switch and check if it is connected to the source
+                    for switch_route in in_routes[route.src_element]:
+                        if switch_route.src_element == get_virt(demand.source):
+                            router_src.append(element)
+                    for switch_route in out_routes[route.src_element]:
+                        if switch_route.dst_element == get_virt(demand.destination):
+                            router_dst.append(element)
+
+            # Store the source and destination routers for the flow
+            src_dst_routers_per_flow[flow_name] = (router_src, router_dst)
+        
+    capacity_groups = []
+    for demand, flow_name in flows.items():
+        # Get the source and destination routers
+        router_src, router_dst = src_dst_routers_per_flow[flow_name]
+        # Create a constraint group for each flow
+        mutex_constraint_group = LPTask.LPConstraintGroup(f"Provide mutual exclusion on INPUT and OUTPUT routes on all elements of flow {flow_name}")
+        capacity_constraint_group = LPTask.LPConstraintGroup(f"Define the maximum capacity of each element for flow {flow_name}")
+        for element in virtual_network.get_routers():
+            # For each element, list all the input and output routes
+            valid_in_routes = [route for route in in_routes[element] if isinstance(route.src_element, VirtualRouter)]
+            valid_out_routes = [route for route in out_routes[element] if isinstance(route.dst_element, VirtualRouter)]
+
+            # Extract variable names for both groups
+            in_var_names = [route.lp_variable_name for route in valid_in_routes]
+            out_var_names = [route.lp_variable_name for route in valid_out_routes]
+            
+            # Compute total			
+            if element in router_src:
+                total = -1
+            elif element in router_dst:
+                total = 1
+            else:
+                total = 0
+            
+            # Build actual variable names
+            in_var_names_binary = [f"{flow_name}_{var_name}" for var_name in in_var_names]
+            out_var_names_binary = [f"{flow_name}_{var_name}" for var_name in out_var_names]
+            in_var_names_capacity = [f"{flow_name}_cap_{var_name}" for var_name in in_var_names]
+            out_var_names_capacity = [f"{flow_name}_cap_{var_name}" for var_name in out_var_names]
+            
+            # For the mutex constraint:
+            # - if element is directly connected to source, we have: 0 input routes, 1 output route (0-1 = -1)
+            # - if element is directly connected to destination, we have: 1 input route, 0 output routes (1-0 = 1)
+            mutex_constraint_group.add_constraint(f"{flow_name}_in_out_{element.get_name()}", f"{f' + '.join(in_var_names_binary)} - {f' - '.join(out_var_names_binary)} = {total}")
+            
+            # For the capacity constraint:
+            # - if element is directly connected to source, the overall flow must be equal to the maximum transmission rate of that flow
+            # - if element is directly connected to destination, the overall flow must also be equal to the maximum transmission rate of that flow
+            # - if element is not connected to source or destination, the overall flow must be equal to 0 as we need to switch its entirety to the next hop
+            lambda_var_name = f"lambda_{flow_name}" 
+            if element in router_src:
+                capacity_constraint_group.add_constraint(f"{flow_name}_cap_{element.get_name()}", f"{f' + '.join(in_var_names_capacity)} - {f' - '.join(out_var_names_capacity)} + {lambda_var_name} = 0")
+            elif element in router_dst:
+                capacity_constraint_group.add_constraint(f"{flow_name}_cap_{element.get_name()}", f"{f' + '.join(in_var_names_capacity)} - {f' - '.join(out_var_names_capacity)} - {lambda_var_name} = 0")
+            else:
+                capacity_constraint_group.add_constraint(f"{flow_name}_cap_{element.get_name()}", f"{f' + '.join(in_var_names_capacity)} - {f' - '.join(out_var_names_capacity)} = 0")
+            
+        # Add the constraint group to the task
+        task.add_constraint_group(mutex_constraint_group)
+        # add the capacity constraint group to the list
+        capacity_groups.append(capacity_constraint_group)
+    
+    # Now, append all capacity constraints to the task
+    for group in capacity_groups:
+        task.add_constraint_group(group)
+ 
+    # Setup link capacities for each link in all possible flows
+    added_routes = set()
+    # Create a constraint group for each flow
+    flow_group = LPTask.LPConstraintGroup(f"Define overall capacities of each edge in the network for all flows")
+    # Keep track of switches connected to the source demand
+    core_switches = set()
+    for lp_route in core_lp_routes:
+        # Check if this route has been added already
+        if lp_route in added_routes:
+            continue
+
+        # Get the reverse route
+        rev_route = lp_network.get_reverse_lp_route(lp_route.route)
+
+        # Add both routes to the set
+        added_routes.add(lp_route)
+        added_routes.add(rev_route)
+
+        # Generate the names of all variables
+        forward_route_var_names = [f"{flow_name}_cap_{lp_route.lp_variable_name}" for flow_name in flows.values()]
+        reverse_route_var_names = [f"{flow_name}_cap_{rev_route.lp_variable_name}" for flow_name in flows.values()]
+
+        print("Checking route:", lp_route.lp_variable_name, rev_route.lp_variable_name)
+
+        # If the route connects an element of the demand, the cost should be the maximum transmission rate
+        dst_match = src_match = propagation_match = False
+        for demand in topology.get_demands():
+            for lp_route in [lp_route, rev_route]:
+                dst_match = lp_route.route.to_element in [get_virt(demand.destination), get_virt(demand.source)] + list(core_switches)
+                src_match = lp_route.src_element in [get_virt(demand.destination), get_virt(demand.source)] + list(core_switches)
+                
+                # Check if it has been matched
+                if not dst_match and not src_match:
+                    # If the propagation match is true, we need to register the core switches
+                    # FIXME: This seems not working fine...
+                    propagation_match = any(route.src_element == demand.source for route in in_routes[lp_route.src_element])
+                    if propagation_match:
+                        core_switches.add(lp_route.src_element)
+    
+                if dst_match or src_match or propagation_match:
+                    break
+            if dst_match or src_match or propagation_match:
+                break
+        override_cost = dst_match or src_match or propagation_match
+        
+        if override_cost:
+            print("Route is part of a route of a demand, so we override the cost:", lp_route.lp_variable_name, rev_route.lp_variable_name)
+
+        # Get the right cost of the route
+        cost = demand.maximumTransmissionRate if override_cost else lp_route.cost
+            
+        # Add the constraint to the group
+        flow_group.add_constraint(f"capacity_{rev_route.lp_variable_name}", f"{' + '.join(forward_route_var_names + reverse_route_var_names)}  <= {cost}")
+        
+    # Add the constraint to the group
+    task.add_constraint_group(flow_group)
+    
+    # For each binary indicator variable, create a constraint to define the actual flow on the specific route
+    for demand, flow_name in flows.items():
+        # Create a constraint group for each flow
+        flow_group = LPTask.LPConstraintGroup(f"Define the flow on each route of flow {flow_name}")
+        for lp_route in core_lp_routes:
+            # If the route connects an element of the demand, the cost should be the maximum transmission rate
+            dst_match = lp_route.route.to_element in [get_virt(demand.destination), get_virt(demand.source)]
+            src_match = lp_route.src_element in [get_virt(demand.destination), get_virt(demand.source)]
+
+            # Get the right cost of the route
+            cost = demand.maximumTransmissionRate if dst_match or src_match else lp_route.cost
+            
+            # Get the variable name of the route
+            var_name = f"{flow_name}_cap_{lp_route.lp_variable_name}"
+            # Add the constraint to the group
+            flow_group.add_constraint(var_name, f"{var_name} - {cost} {flow_name}_{lp_route.lp_variable_name} <= 0")
+        # Register constraint group
+        task.add_constraint_group(flow_group)
  
     # Print in CPLEX format
     print(task.to_cplex())
