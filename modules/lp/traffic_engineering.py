@@ -90,8 +90,12 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
     variable_lookup["min_r"] = glop.solver.NumVar(0, 1, "min_r")
     objective = cast(Objective, glop.solver.Objective())
     objective.SetCoefficient(variable_lookup["min_r"], 1)
+    for demand in flows.keys():
+        objective.SetCoefficient(variable_lookup[flows[demand]], +1)
     objective.SetMaximization()
-    task.set_objective("min_r", is_maximization=True)
+    # Build the objective function
+    total_sum = " + ".join([f"{flow_name}" for flow_name in flows.values()])
+    task.set_objective(f"min_r + {total_sum}", is_maximization=True)
 
     # Create the constraint to maximize the minimum effectiveness ratio
     flow_ratio_group = LPTask.LPConstraintGroup("Set min_r as the minimum of all effectiveness ratios")
@@ -302,13 +306,8 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
             flow_group.add_constraint(var_name, f"{var_name} - {cost} {flow_name}_{lp_route.lp_variable_name} <= 0")
         # Register constraint group
         task.add_constraint_group(flow_group)
- 
-    # 98) Run solver and create LPResult
-    Logger().info("Solving the Traffic Engineering Linear Programming problem...")
-    result = glop.solve()
-    Logger().info(f"Done. Result: {result.status}, {result.objective_value}, {result.variables}")
-
-    # 99) FIXME: Create the Linear Programming task object and return it
+    
+    # Return the generated lp_network and the relative task describing the traffic engineering problem
     return lp_network, task
 
 def compute_in_out_paths(virtual_network: VirtualNetwork, lp_network: LPNetwork) -> tuple[dict[VirtualNetworkElement, list[LPNetwork.LPRoute]], dict[VirtualNetworkElement, list[LPNetwork.LPRoute]]]:

@@ -49,12 +49,11 @@ def main():
 
             # Check if we need to solve the LP problem before starting the network
             if len(topology.get_demands()) > 0:
-                ptask = traffic_engineering_task_from_virtual_network(topology, virtual_network)
+                _, lp_task = traffic_engineering_task_from_virtual_network(topology, virtual_network)
 
                 # Check if we need to virtualize or not
                 if is_lp:
-                    raise NotImplementedError("LP problem not implemented yet.")
-                    print(lptask.to_cplex())
+                    print(lp_task.to_cplex())
                 elif is_print_goodput:
                     raise NotImplementedError("Goodput analysis not implemented yet.")
                 else:
@@ -74,7 +73,6 @@ def main():
                     easy_mn.stop_network()
     except ValueError as e:
         Logger().fatal(str(e))
-
 
 if __name__ == "__main__":
     main()
