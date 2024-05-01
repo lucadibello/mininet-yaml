@@ -188,11 +188,6 @@ class LPNetwork():
 		self._reverse_routes[lp_route.route] = lp_route_rev
 		self._reverse_routes[lp_route_rev.route] = lp_route
 
-		# Print route + reversed route
-		print("Normal:", lp_route.route)
-		print("Reverse:", lp_route_rev.route)
-		print()
-
 		# Register both routes in the lookup table(s)
 		for lpr in [lp_route, lp_route_rev]:
 			# Log both routes

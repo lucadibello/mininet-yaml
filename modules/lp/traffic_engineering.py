@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Tuple, cast
 
 from modules.lp.lp_models import LPNetwork, LPTask
 from modules.lp.solver import GLOPSolver
@@ -23,7 +23,7 @@ def next_alpha_id(count: int, start_letter: str = "A") -> str:
             remaining = remaining // 26
     return str_id
 
-def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, virtual_network: VirtualNetwork) -> LPTask:
+def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, virtual_network: VirtualNetwork) -> Tuple[LPNetwork, LPTask]:
     """
     This function takes a VirtualNetwork object and returns a Linear Programming task object that represents the traffic
     engineering problem of the virtual network. The Linear Programming task should be ready to be solved by an external
@@ -52,7 +52,6 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
     for element in virtual_network.get_routers() + virtual_network.get_switches() + virtual_network.get_hosts():
         # For each router, add its routes to the dictionary if they do not exist yet                
         for route in element.get_routes():
-            # Print added route
             if route.is_registered and not lp_network.has_route(route):
                 # Register the route in the LP network if not present
                 lp_network.add_route(LPNetwork.LPRoute(element, route))
@@ -123,8 +122,6 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
             # Skip if for this element there are no input or output routes
             if len(in_routes[element]) == 0:
                 continue
-            print("Element:", element.get_name())
-            print("Routes:", in_routes[element])
 
             # Select only valid routes
             valid_in_routes = [route for route in in_routes[element] if isinstance(route.src_element, VirtualRouter)]
@@ -257,8 +254,6 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
         forward_route_var_names = [f"{flow_name}_cap_{lp_route.lp_variable_name}" for flow_name in flows.values()]
         reverse_route_var_names = [f"{flow_name}_cap_{rev_route.lp_variable_name}" for flow_name in flows.values()]
 
-        print("Checking route:", lp_route.lp_variable_name, rev_route.lp_variable_name)
-
         # If the route connects an element of the demand, the cost should be the maximum transmission rate
         dst_match = src_match = propagation_match = False
         for demand in topology.get_demands():
@@ -280,9 +275,6 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
                 break
         override_cost = dst_match or src_match or propagation_match
         
-        if override_cost:
-            print("Route is part of a route of a demand, so we override the cost:", lp_route.lp_variable_name, rev_route.lp_variable_name)
-
         # Get the right cost of the route
         cost = demand.maximumTransmissionRate if override_cost else lp_route.cost
             
@@ -311,16 +303,13 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
         # Register constraint group
         task.add_constraint_group(flow_group)
  
-    # Print in CPLEX format
-    print(task.to_cplex())
-     
     # 98) Run solver and create LPResult
     Logger().info("Solving the Traffic Engineering Linear Programming problem...")
     result = glop.solve()
     Logger().info(f"Done. Result: {result.status}, {result.objective_value}, {result.variables}")
 
     # 99) FIXME: Create the Linear Programming task object and return it
-    return None # type: ignore
+    return lp_network, task
 
 def compute_in_out_paths(virtual_network: VirtualNetwork, lp_network: LPNetwork) -> tuple[dict[VirtualNetworkElement, list[LPNetwork.LPRoute]], dict[VirtualNetworkElement, list[LPNetwork.LPRoute]]]:
     # We build the in_routes and out_routes dictionaries to store the input and output routes of each element
