@@ -51,7 +51,13 @@ def main():
             if len(topology.get_demands()) > 0:
                 # Create the LP problem
                 Logger().info("Generating the Traffic Engineering LP problem from the specified demands...")
-                solver, lp_task = traffic_engineering_task_from_virtual_network(topology, virtual_network)
+                glop_solver, lp_task = traffic_engineering_task_from_virtual_network(topology, virtual_network)
+
+                glop_solver.solver.EnableOutput()
+
+                print("Total constraints:", glop_solver.solver.NumConstraints())
+                print("Total variables:", glop_solver.solver.NumVariables())
+                print("Variables", glop_solver.solver.variables())
 
                 # Check if we need to virtualize or not
                 if is_lp:
@@ -59,9 +65,15 @@ def main():
                 else:
                     # Solve the problem
                     Logger().info("Solving the Traffic Engineering LP problem...")
-                    result = solver.solve()
-                    # Print result
-                    print(result.objective_value, result.variables, result.status)
+                    result = glop_solver.solve()
+
+                    # Print the value of all the variables
+                    for variable in glop_solver.solver.variables():
+                        print(f"{variable.name()} = {variable.solution_value()}")
+
+                    #
+                    # FIXME: MANCA min_r nella lista!!!!! credo sia quello il problema
+                    #
 
                     # Print only the goodput for each demand
                     if is_print_goodput:

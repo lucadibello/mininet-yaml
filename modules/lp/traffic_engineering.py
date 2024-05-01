@@ -372,9 +372,8 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
 			flow_group.add_constraint(constraint_name, f"{var_name} - {cost} {flow_name}_{lp_route.lp_variable_name} <= 0")
 
 		# Register constraint group
-		task.add_constraint_group(flow_group)
-	
-	glop.solver.EnableOutput()
+		task.add_constraint_group(flow_group)	
+
 	# Return the generated lp_network and the relative task describing the traffic engineering problem
 	return (glop, task)
 
