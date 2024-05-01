@@ -10,13 +10,14 @@ from ortools.linear_solver.pywraplp import Objective, Variable
 
 # Prefixes for variable names
 MIN_MAX_NAME = "min_r" # Minimum of all computed effectiveness ratios
+ROUTE_CAPACITY = "cap"
 SRC_OVERALL_FLOW_NAME = "lambda" # The total flow of a specific flow
 
 # Prefixes for constraint names
 ELEMENT_MUTEX_IN_ROUTES = "in"
 ELEMENT_MUTEX_OUT_ROUTES = "out"
 ELEMENT_MUTEX_IN_OUT_ROUTES = "in_out"
-ROUTE_CAPACITY = "cap"
+ROUTE_CAPACITY_CONSTRAINT = "capacity"
 
 def next_alpha_id(count: int, start_letter: str = "A") -> str:
 	# Check if we need multiple letters
@@ -110,11 +111,12 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
 	flow_ratio_group = LPTask.LPConstraintGroup("Set min_r as the minimum of all effectiveness ratios")
 	for demand, flow_name in flows.items(): 
 		# Create constraint for each flow
-		constraint = glop.solver.Constraint(-glop.solver.infinity(), 0)
+		constraint_name = f"{flow_name}_min"
+		constraint = glop.solver.Constraint(-glop.solver.infinity(), 0, constraint_name)
 		constraint.SetCoefficient(variable_lookup[MIN_MAX_NAME], 1)
 		constraint.SetCoefficient(variable_lookup[flow_name], -1)
 		# Add the constraint to the group
-		flow_ratio_group.add_constraint(f"{flow_name}_min", f"min_r - {flow_name} <= 0")
+		flow_ratio_group.add_constraint(constraint_name, f"min_r - {flow_name} <= 0")
 		# Increase counter by one
 		counter += 1
 	# Add the constraint group to the task
@@ -126,12 +128,13 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
 		# Define var names
 		ratio_var_name = f"{SRC_OVERALL_FLOW_NAME}_{flow_name}"
 		# Create the constraint
-		constraint = glop.solver.Constraint(0, 0)
+		constraint_name = f"{flow_name}_flow"
+		constraint = glop.solver.Constraint(0, 0, constraint_name)
 		constraint.SetCoefficient(variable_lookup[flow_name], demand.maximumTransmissionRate)
 		constraint.SetCoefficient(variable_lookup[ratio_var_name], -1)
 		
 		# The transmission ratio * the cost of the route, must be equal to the maximum transmission rate
-		group.add_constraint(f"{flow_name}_flow", f"{demand.maximumTransmissionRate} {flow_name} - {ratio_var_name} = 0")
+		group.add_constraint(constraint_name, f"{demand.maximumTransmissionRate} {flow_name} - {ratio_var_name} = 0")
 	task.add_constraint_group(group)
 
 	# For each router and switch, create a constraint
@@ -146,22 +149,21 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
 			# Cycle throgh all the input routes and get the variable names
 			valid_in_routes = [] 
 			src_var_names = []
-			constraint = glop.solver.Constraint(-glop.solver.infinity(), 1)
+			constraint_name = f"{flow_name}_{ELEMENT_MUTEX_IN_ROUTES}_{element.get_name()}"
+			constraint = glop.solver.Constraint(-glop.solver.infinity(), 1, constraint_name)
 			for route in in_routes[element]:
 				# skip routes that should not be considered
 				if not is_valid_route(route):
 					continue
 				valid_in_routes.append(route)
-				src_var_names.append(flow_name + '_' + route.lp_variable_name)
+				src_var_name = flow_name + '_' + route.lp_variable_name
+				src_var_names.append(src_var_name)
 				# Build constraint
-				constraint.SetCoefficient(variable_lookup[flow_name + '_' + route.lp_variable_name], 1)
+				constraint.SetCoefficient(variable_lookup[src_var_name], 1)
 
-			# Register the constraint
-			in_mutex_group.add_constraint(f"{flow_name}_{ELEMENT_MUTEX_IN_ROUTES}_{element.get_name()}", f"{' + '.join(src_var_names)} <= 1")
+			in_mutex_group.add_constraint(constraint_name, f"{' + '.join(src_var_names)} <= 1")
 
 		# Now, we need to create another constraint for mutual exclusion: only one output route can be chosen
-		# output_variables = [variable_lookup[route.lp_variable_name] for route in elem_out_routes]
-		# glop.solver.Add(sum(output_variables) <= 1) # type: ignore
 		out_mutex_group = LPTask.LPConstraintGroup(f"Provide mutual exclusion on OUTPUT routes on all elements of flow {flow_name}")
 		for element in virtual_network.get_routers():
 			# Skip if for this element there are no input or output routes
@@ -171,7 +173,13 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
 			# Get all the variable names of the output routes which interconnect routers
 			valid_out_routes = [route for route in out_routes[element] if isinstance(route.dst_element, VirtualRouter)]
 			src_var_names = [flow_name + '_' + route.lp_variable_name for route in valid_out_routes]
-			out_mutex_group.add_constraint(f"{flow_name}_{ELEMENT_MUTEX_OUT_ROUTES}_{element.get_name()}", f"{' + '.join(src_var_names)} <= 1")
+			
+			# Build constraint
+			constraint_name = f"{flow_name}_{ELEMENT_MUTEX_OUT_ROUTES}_{element.get_name()}"
+			constraint = glop.solver.Constraint(-glop.solver.infinity(), 1, constraint_name)
+			for var_name in src_var_names:
+				constraint.SetCoefficient(variable_lookup[var_name], 1)
+			out_mutex_group.add_constraint(constraint_name, f"{' + '.join(src_var_names)} <= 1")
 
 		# Add the constraint groups to the task
 		task.add_constraint_group(in_mutex_group)
@@ -240,19 +248,42 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
 			# For the mutex constraint:
 			# - if element is directly connected to source, we have: 0 input routes, 1 output route (0-1 = -1)
 			# - if element is directly connected to destination, we have: 1 input route, 0 output routes (1-0 = 1)
-			mutex_constraint_group.add_constraint(f"{flow_name}_{ELEMENT_MUTEX_IN_OUT_ROUTES}_{element.get_name()}", f"{f' + '.join(in_var_names_binary)} - {f' - '.join(out_var_names_binary)} = {total}")
+			constraint_name = f"{flow_name}_{ELEMENT_MUTEX_IN_OUT_ROUTES}_{element.get_name()}"
+			constraint = glop.solver.Constraint(total, total, constraint_name)
+			for in_var_name in in_var_names_binary:
+				variable_lookup[in_var_name] = glop.solver.BoolVar(in_var_name)
+				constraint.SetCoefficient(variable_lookup[in_var_name], 1)
+			for out_var_name in out_var_names_binary:
+				variable_lookup[out_var_name] = glop.solver.BoolVar(out_var_name)
+				constraint.SetCoefficient(variable_lookup[out_var_name], -1)
+			mutex_constraint_group.add_constraint(constraint_name, f"{f' + '.join(in_var_names_binary)} - {f' - '.join(out_var_names_binary)} = {total}")
 			
 			# For the capacity constraint:
 			# - if element is directly connected to source, the overall flow must be equal to the maximum transmission rate of that flow
 			# - if element is directly connected to destination, the overall flow must also be equal to the maximum transmission rate of that flow
 			# - if element is not connected to source or destination, the overall flow must be equal to 0 as we need to switch its entirety to the next hop
-			lambda_var_name = f"lambda_{flow_name}" 
+			lambda_var_name = f"{SRC_OVERALL_FLOW_NAME}_{flow_name}" 
+			constraint_name = f"{flow_name}_{ROUTE_CAPACITY}_{element.get_name()}"
+
+			# build or-tools constraint
+			constraint = glop.solver.Constraint(0, 0, constraint_name)
+			for in_var_name in in_var_names_capacity:
+				variable_lookup[in_var_name] = glop.solver.IntVar(0, glop.solver.infinity(), in_var_name)
+				constraint.SetCoefficient(variable_lookup[in_var_name], 1)
+			for out_var_name in out_var_names_capacity:
+				variable_lookup[out_var_name] = glop.solver.IntVar(0, glop.solver.infinity(), out_var_name)
+				constraint.SetCoefficient(variable_lookup[out_var_name], -1)
+
+			# create constraint in cplex syntax
+			base_constraint = f"{f' + '.join(in_var_names_capacity)} - {f' - '.join(out_var_names_capacity)}{1} = 0"
 			if element in router_src:
-				capacity_constraint_group.add_constraint(f"{flow_name}_cap_{element.get_name()}", f"{f' + '.join(in_var_names_capacity)} - {f' - '.join(out_var_names_capacity)} + {lambda_var_name} = 0")
-			elif element in router_dst:
-				capacity_constraint_group.add_constraint(f"{flow_name}_cap_{element.get_name()}", f"{f' + '.join(in_var_names_capacity)} - {f' - '.join(out_var_names_capacity)} - {lambda_var_name} = 0")
+				capacity_constraint_group.add_constraint(constraint_name, base_constraint.format(f" + {lambda_var_name}"))
+				constraint.SetCoefficient(variable_lookup[lambda_var_name], 1)
+			elif element in router_dst: 
+				capacity_constraint_group.add_constraint(constraint_name, base_constraint.format(f" - {lambda_var_name}"))
+				constraint.SetCoefficient(variable_lookup[lambda_var_name], -1)
 			else:
-				capacity_constraint_group.add_constraint(f"{flow_name}_cap_{element.get_name()}", f"{f' + '.join(in_var_names_capacity)} - {f' - '.join(out_var_names_capacity)} = 0")
+				capacity_constraint_group.add_constraint(constraint_name, base_constraint.format(""))
 			
 		# Add the constraint group to the task
 		task.add_constraint_group(mutex_constraint_group)
@@ -282,8 +313,8 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
 		added_routes.add(rev_route)
 
 		# Generate the names of all variables
-		forward_route_var_names = [f"{flow_name}_cap_{lp_route.lp_variable_name}" for flow_name in flows.values()]
-		reverse_route_var_names = [f"{flow_name}_cap_{rev_route.lp_variable_name}" for flow_name in flows.values()]
+		forward_route_var_names = [f"{flow_name}_{ROUTE_CAPACITY}_{lp_route.lp_variable_name}" for flow_name in flows.values()]
+		reverse_route_var_names = [f"{flow_name}_{ROUTE_CAPACITY}_{rev_route.lp_variable_name}" for flow_name in flows.values()]
 
 		# If the route connects an element of the demand, the cost should be the maximum transmission rate
 		dst_match = src_match = propagation_match = False
@@ -309,7 +340,11 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
 		cost = demand.maximumTransmissionRate if override_cost else lp_route.cost
 			
 		# Add the constraint to the group
-		flow_group.add_constraint(f"capacity_{rev_route.lp_variable_name}", f"{' + '.join(forward_route_var_names + reverse_route_var_names)}  <= {cost}")
+		constraint_name = f"{ROUTE_CAPACITY_CONSTRAINT}_{lp_route.lp_variable_name}"
+		constraint = glop.solver.Constraint(-glop.solver.infinity(), cost, constraint_name)
+		for var_name in forward_route_var_names + reverse_route_var_names:
+			constraint.SetCoefficient(variable_lookup[var_name], 1)
+		flow_group.add_constraint(constraint_name, f"{' + '.join(forward_route_var_names + reverse_route_var_names)} <= {cost}")
 		
 	# Add the constraint to the group
 	task.add_constraint_group(flow_group)
@@ -327,12 +362,19 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
 			cost = demand.maximumTransmissionRate if dst_match or src_match else lp_route.cost
 			
 			# Get the variable name of the route
-			var_name = f"{flow_name}_cap_{lp_route.lp_variable_name}"
-			# Add the constraint to the group
-			flow_group.add_constraint(var_name, f"{var_name} - {cost} {flow_name}_{lp_route.lp_variable_name} <= 0")
+			constraint_name = f"{flow_name}_{ROUTE_CAPACITY_CONSTRAINT}_{lp_route.lp_variable_name}"
+			var_name = f"{flow_name}_{ROUTE_CAPACITY}_{lp_route.lp_variable_name}"
+			
+			# Create constraint in solver + add to task
+			constraint = glop.solver.Constraint(-glop.solver.infinity(), 0, constraint_name)
+			constraint.SetCoefficient(variable_lookup[var_name], 1)
+			constraint.SetCoefficient(variable_lookup[f"{flow_name}_{lp_route.lp_variable_name}"], -cost)
+			flow_group.add_constraint(constraint_name, f"{var_name} - {cost} {flow_name}_{lp_route.lp_variable_name} <= 0")
+
 		# Register constraint group
 		task.add_constraint_group(flow_group)
 	
+	glop.solver.EnableOutput()
 	# Return the generated lp_network and the relative task describing the traffic engineering problem
 	return (glop, task)
 
