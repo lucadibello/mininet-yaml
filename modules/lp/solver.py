@@ -50,12 +50,8 @@ class GLOPSolver(LpSolver):
         return self._solver
 
     def solve(self) -> LPResult:
-        # Initialize the solver by setting the necessary CPP flags
-        super().init_solver() 
-
-        # FIXME: setup the LP problem from the LPTask
         result = self.solver.Solve()
-        
+        print("INTERNAL RESULT:", result)
         # FIXME: This must be implemented
         if result != pywraplp.Solver.OPTIMAL:
             if result == pywraplp.Solver.FEASIBLE:

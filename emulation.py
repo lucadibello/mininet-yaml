@@ -59,7 +59,9 @@ def main():
                 else:
                     # Solve the problem
                     Logger().info("Solving the Traffic Engineering LP problem...")
-                    solver.solve()
+                    result = solver.solve()
+                    # Print result
+                    print(result.objective_value, result.variables, result.status)
 
                     # Print only the goodput for each demand
                     if is_print_goodput:
