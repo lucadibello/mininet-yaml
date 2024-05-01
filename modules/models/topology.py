@@ -84,7 +84,7 @@ class NetworkTopology:
                             source_interface.get_cost()
                             != destination_interface.get_cost()
                         ):
-                            Logger().info(
+                            Logger().debug(
                                 f"Found cost discrepancy between "
                                 f"{a.get_name()}"
                                 f"(inet: {source_interface.get_name()}, "

@@ -99,7 +99,7 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
     # Create the constraint to maximize the minimum effectiveness ratio
     flow_ratio_group = LPTask.LPConstraintGroup("Set min_r as the minimum of all effectiveness ratios")
     for demand, flow_name in flows.items(): 
-        # glop.solver.Add(variable_lookup["min_r"] - {variable_lookup[flow_name]} <= 0)
+        glop.solver.Add(variable_lookup["min_r"] - variable_lookup[flow_name] <= 0)
         flow_ratio_group.add_constraint(f"{flow_name}_min", f"min_r - {flow_name} <= 0")
         # Increase counter by one
         counter += 1

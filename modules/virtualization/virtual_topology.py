@@ -100,9 +100,6 @@ class VirtualNetworkTopology(Topo):
         # 4) Propagate routing tables to all routers in the network
         self._propagate_routes(network.get_routers(), virtual_network)
 
-        # Notify that the topology has been constructed
-        Logger().info("The virtual network topology has been built.")
-
     def _link_routers_best_path(
         self,
         routers: list[Router],

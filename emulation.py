@@ -43,12 +43,14 @@ def main():
             # Print the graph to the console
             print(graph)
         else:
-            Logger().debug("Creating virtual network...")
+            Logger().info("Creating virtual network...")
             # Create and virtualize decoded topology
             easy_mn, virtual_network = create_network_from_virtual_topology(topology)
 
             # Check if we need to solve the LP problem before starting the network
             if len(topology.get_demands()) > 0:
+                # Create the LP problem
+                Logger().info("Generating the Traffic Engineering LP problem from the specified demands...")
                 solver, lp_task = traffic_engineering_task_from_virtual_network(topology, virtual_network)
 
                 # Check if we need to virtualize or not
@@ -56,10 +58,9 @@ def main():
                     print(lp_task.to_cplex())
                 else:
                     # Solve the problem
+                    Logger().info("Solving the Traffic Engineering LP problem...")
                     solver.solve()
 
-                    # FIXME: Continue from here!!!
-                    
                     # Print only the goodput for each demand
                     if is_print_goodput:
                         raise NotImplementedError("Goodput analysis not implemented yet.")
