@@ -4,7 +4,7 @@ from modules.lp.lp_models import LPNetwork, LPTask
 from modules.lp.solver import GLOPSolver, SolverStatus
 from modules.models.network_elements import Demand, NetworkElement
 from modules.models.topology import NetworkTopology
-from modules.virtualization.network_elements import VirtualHost, VirtualNetwork, VirtualNetworkElement, VirtualRouter, VirtualSwitch
+from modules.virtualization.network_elements import VirtualNetwork, VirtualNetworkElement, VirtualRouter, VirtualSwitch
 
 from ortools.linear_solver.pywraplp import Objective, Variable
 
@@ -34,42 +34,57 @@ def next_alpha_id(count: int, start_letter: str = "A") -> str:
     return str_id
 
 def ensure_result_set(func):
-    def wrapper(self, *args, **kwargs):
+    def inner(self, *args, **kwargs):
         if not self._has_result:
             raise ValueError("The result has not been parsed yet.")
         return func(self, *args, **kwargs)
-    return wrapper
+    return inner
     
 class TrafficEngineeringLPResult():
 
     class FlowData():
-
         class FlowPathNode():
             def __init__(self, lp_route: LPNetwork.LPRoute, capacity: float) -> None:
                 self._lp_route = lp_route
                 self._capacity = capacity
             
-            get_lp_route = lambda self: self._lp_route
-            get_capacity = lambda self: self._capacity
-  
-        def __init__(self, flow_name: str, flow_path: list[FlowPathNode],
-               effectiveness_ratio: float, actual_flow: int) -> None:
+            @property
+            def lp_route(self) -> LPNetwork.LPRoute:
+                return self._lp_route
+            
+            @property
+            def capacity(self) -> float:
+                return self._capacity
+
+        def __init__(self, flow_name: str, flow_path: list[FlowPathNode], effectiveness_ratio: float, actual_flow: int) -> None:
             self._flow_name = flow_name
             self._flow_path = flow_path
             self._effective_ratio = effectiveness_ratio
             self._actual_flow = actual_flow
         
-        get_flow_name = lambda self: self._flow_name
-        get_flow_path = lambda self: self._flow_path
-        get_flow_capacity = lambda self: self._flow_capacity
-        get_effectiveness_ratio = lambda self: self._effective_ratio
-        get_actual_flow = lambda self: self._actual_flow
- 
+        @property
+        def flow_name(self) -> str:
+            return self._flow_name
+        
+        @property
+        def flow_path(self) -> list[FlowPathNode]:
+            return self._flow_path
+        
+        @property
+        def effective_ratio(self) -> float:
+            return self._effective_ratio
+        
+        @property
+        def actual_flow(self) -> int:
+            return self._actual_flow
+
     def _get_binary_route_var_name(self, flow_name: str, lp_route: LPNetwork.LPRoute) -> str:
         return f"{flow_name}_{lp_route.lp_variable_name}"
     def _get_capacity_route_var_name(self, flow_name: str, lp_route: LPNetwork.LPRoute) -> str:
         return f"{flow_name}_{ROUTE_CAPACITY}_{lp_route.lp_variable_name}"
-    
+    def _get_flow_var_name(self, flow_name: str) -> str:
+        return f"{SRC_OVERALL_FLOW_NAME}_{flow_name}"
+       
     def __init__(self, lp_network: LPNetwork, lp_task: LPTask, used_routes: list[LPNetwork.LPRoute]) -> None:
         self._lp_network = lp_network
         self._lp_task = lp_task
@@ -80,31 +95,33 @@ class TrafficEngineeringLPResult():
     def parse_result(self, result: GLOPSolver.LPResult) -> None:
         # First of all, store the status of the outcome (OPTIMAL, FEASIBLE, INFEASIBLE,..)
         self._status = result.status
-        # Store the objective value of the LP problem
         self._objective_value = result.objective_value
-
-        self._flow_path = dict[Demand, list[LPNetwork.LPRoute]]()
-        self._flow_capacity = dict[Demand, dict[LPNetwork.LPRoute, float]]()
+        self._min_effectiveness_ratio = result.variables[MIN_MAX_NAME]
+        flow_data_dict = dict[Demand, TrafficEngineeringLPResult.FlowData]()
+        
         # For each flow, store the path that has been chosen by the solver
+        total_flows = 0
         for demand, flow_name in self._lp_task.get_flows().items():
-            self._flow_path[demand] = []
-            self._flow_capacity[demand] = dict()
+            total_flows += 1
+            flow_nodes = []
             for lp_route in self._used_routes:
-                # Get the value of the binary variable
+                # if the route has been chosen by the solver, create a path node + save the capacity
                 if result.variables[self._get_binary_route_var_name(flow_name, lp_route)] == 1:
-                    # Store the path
-                    self._flow_path[demand].append(lp_route)
-                # Store the capacity of the route
-                self._flow_capacity[demand][lp_route] = result.variables[self._get_capacity_route_var_name(flow_name, lp_route)]
-            
-            #
-            # FIXME: i need to create a new object to store all the information for each flow!
-            #
-            # Goodput: result.variables[f'{SRC_OVERALL_FLOW_NAME}_{traffic_eng_task.get_lp_task().get_flows()[demand]
-            
-            # Extract the overall flow of the demand
-            # Extract the
+                    print(f"Route {lp_route.lp_variable_name} has been chosen for flow {flow_name}")
+                    print(f"\t * Source: {lp_route.src_element.get_name()}, Destination: {lp_route.route.to_element.get_name()}")
+                    print(f"\t * Capacity: {result.variables[self._get_capacity_route_var_name(flow_name, lp_route)]}")
+                    # Create a new FlowPathNode object
+                    flow_nodes.append(TrafficEngineeringLPResult.FlowData.FlowPathNode(lp_route, result.variables[self._get_capacity_route_var_name(flow_name, lp_route)]))
+
+            # Extract important statistics of the flow
+            effectiveness_ratio= float(result.variables[flow_name]) # Actual effectiveness as a ratio of the requested goodput
+            effective_flow = int(result.variables[self._get_flow_var_name(flow_name)]) # Goodput of the flow
+   
+            # Create new flow data object
+            flow_data_dict[demand] = TrafficEngineeringLPResult.FlowData(flow_name, flow_nodes, effectiveness_ratio, effective_flow)
+        self._flow_data = flow_data_dict
         self._has_result = True
+        self._n_flows = total_flows
     
     @ensure_result_set
     def get_status(self) -> SolverStatus:
@@ -119,12 +136,16 @@ class TrafficEngineeringLPResult():
         return self._flow_data
     
     @ensure_result_set
-    def get_flow_path(self, demand: Demand) -> list[LPNetwork.LPRoute]:
-        return self._flow_path[demand]
+    def get_flow_data(self, demand: Demand) -> FlowData:
+        return self._flow_data[demand]
+
+    @ensure_result_set 
+    def get_min_effectiveness_ratio(self) -> float:
+        return self._min_effectiveness_ratio
     
     @ensure_result_set
-    def get_flow_capacity(self, demand: Demand) -> dict[LPNetwork.LPRoute, float]:
-        return self._flow_capacity[demand]
+    def get_total_flows(self) -> int:
+        return self._n_flows
 
     def get_lp_task(self) -> LPTask:
         return self._lp_task
@@ -349,10 +370,8 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
             constraint_name = f"{flow_name}_{ELEMENT_MUTEX_IN_OUT_ROUTES}_{element.get_name()}"
             constraint = glop.solver.Constraint(total, total, constraint_name)
             for in_var_name in in_var_names_binary:
-                variable_lookup[in_var_name] = glop.solver.BoolVar(in_var_name)
                 constraint.SetCoefficient(variable_lookup[in_var_name], 1)
             for out_var_name in out_var_names_binary:
-                variable_lookup[out_var_name] = glop.solver.BoolVar(out_var_name)
                 constraint.SetCoefficient(variable_lookup[out_var_name], -1)
             mutex_constraint_group.add_constraint(constraint_name, f"{f' + '.join(in_var_names_binary)} - {f' - '.join(out_var_names_binary)} = {total}")
             

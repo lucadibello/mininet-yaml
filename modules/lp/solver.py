@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from enum import Enum
+from typing import Union
 
 from ortools.init.python import init
 from ortools.linear_solver import pywraplp
@@ -31,7 +32,7 @@ class GLOPSolver(LpSolver):
     """
     
     class LPResult():
-        def __init__(self, status: SolverStatus, objective_value: float, variables: dict[str, float]) -> None:
+        def __init__(self, status: SolverStatus, objective_value: float, variables: dict[str, Union[int,float]]) -> None:
             self.status = status
             self.objective_value = objective_value
             self.variables = variables
@@ -53,17 +54,18 @@ class GLOPSolver(LpSolver):
         result = self.solver.Solve()
 
         # Extract all variables and their values
-        variables = {}
+        variables = dict[str, Union[int,float]]()
         for variable in self.solver.variables():
             variables[variable.name()] = variable.solution_value()
 
-        print("INTERNAL RESULT:", result)
+        # Get objective value
+        objective_value = self.solver.Objective().Value()
         if result != pywraplp.Solver.OPTIMAL:
             if result == pywraplp.Solver.FEASIBLE:
-                return GLOPSolver.LPResult(SolverStatus.FEASIBLE, 0, variables)
+                return GLOPSolver.LPResult(SolverStatus.FEASIBLE, objective_value, variables)
             else:
-                return GLOPSolver.LPResult(SolverStatus.INFEASIBLE, 0, variables)
-        return GLOPSolver.LPResult(SolverStatus.OPTIMAL, 0, variables)
+                return GLOPSolver.LPResult(SolverStatus.INFEASIBLE, objective_value, variables)
+        return GLOPSolver.LPResult(SolverStatus.OPTIMAL, objective_value, variables)
 
     def set_verbose(self, verbose: bool):
         if verbose:

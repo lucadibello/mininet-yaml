@@ -3,12 +3,23 @@ from mininet.net import Mininet
 
 from mininet.node import Node
 from mininet.cli import CLI
-from modules.models.network_elements import NetworkElement, RouterNetworkInterface
+from modules.lp.traffic_engineering import TrafficEngineeringLPResult
+from modules.models.network_elements import Demand, NetworkElement, RouterNetworkInterface
 from modules.models.topology import NetworkTopology
 from modules.util.exceptions import NetworkError
 from modules.util.logger import Logger
 from modules.util.mininet import executeChainedCommands, executeCommand
 from modules.virtualization.network_elements import Route, VirtualNetwork, VirtualNetworkInterface
+
+def ensure_network_started(func):
+    """
+    Decorator to ensure that the network has been started before calling a method.
+    """
+    def wrapper(self, *args, **kwargs):
+        if not self._is_started:
+            raise NetworkError("The virtual network has not been started yet.")
+        return func(self, *args, **kwargs)
+    return wrapper
 
 class EasyMininet():
     """
@@ -151,7 +162,27 @@ class EasyMininet():
         
         # Mark the virtual network as started
         self._is_started = True
-    
+
+    @ensure_network_started
+    def apply_traffic_control(self, flows_data: dict[Demand, TrafficEngineeringLPResult.FlowData]):
+        # For each demand, apply the traffic control rules to the corresponding interfaces
+        for demand, flow_data in flows_data.items():
+            print(f"Applying traffic control rules for demand {demand.source.get_name()} -> {demand.destination.get_name()} with {demand.maximumTransmissionRate} Mbps:")
+            # Get all elements involved in the demand
+            for path_node in flow_data.flow_path:
+                # Get the underlying virtual route
+                virt_route = path_node.lp_route.route
+                # Get the element + the interface in which we need to apply the traffic control rules to
+                target_router = virt_route.to_element
+                target_interface = virt_route.via_interface
+
+                # Print the path node
+                print("\t *", target_router.get_name(), "via", target_interface.name, "with capacity", path_node.capacity, "Mbps")
+            
+                # Get the Mininet node of the router
+                # node = self._net.get(target_router.get_name())
+
+
     def stop_network(self):
         """
         This method stops the virtual network and cleans up the Mininet environment.
