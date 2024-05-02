@@ -1,8 +1,10 @@
 from modules.args.parser import ArgParser
-from modules.lp.traffic_engineering import traffic_engineering_task_from_virtual_network
+from modules.lp.traffic_engineering import traffic_engineering_task_from_virtual_network, MIN_MAX_NAME, SRC_OVERALL_FLOW_NAME
 from modules.yaml.decoder import decodeTopology
 from modules.util.logger import Logger
 from modules.virtualization.network import create_network_from_virtual_topology
+
+ROUND_DIGITS = 6
 
 def main():
     # Parse + validate arguments
@@ -57,7 +59,9 @@ def main():
 
                 print("Total constraints:", glop_solver.solver.NumConstraints())
                 print("Total variables:", glop_solver.solver.NumVariables())
-                print("Variables", glop_solver.solver.variables())
+                # Print all variables
+                for variable in glop_solver.solver.variables():
+                    print(variable.name())
 
                 # Check if we need to virtualize or not
                 if is_lp:
@@ -67,17 +71,29 @@ def main():
                     Logger().info("Solving the Traffic Engineering LP problem...")
                     result = glop_solver.solve()
 
+                    
+                    print("Solution:")
+                    print("Objective value =", glop_solver.solver.Objective().Value())
+                    print(f"{MIN_MAX_NAME} =", result.variables[MIN_MAX_NAME])
+                    
+                    for flow_name in lp_task.get_flows().values():
+                        print(f"{flow_name} =", result.variables[flow_name])
+                    for flow_name in lp_task.get_flows().values():
+                        print(f"lambda_{flow_name} =", result.variables[f"lambda_{flow_name}"])
+                    print()
+                    
                     # Print the value of all the variables
                     for variable in glop_solver.solver.variables():
                         print(f"{variable.name()} = {variable.solution_value()}")
 
-                    #
-                    # FIXME: MANCA min_r nella lista!!!!! credo sia quello il problema
-                    #
-
                     # Print only the goodput for each demand
                     if is_print_goodput:
-                        raise NotImplementedError("Goodput analysis not implemented yet.")
+                        for demand in topology.get_demands():
+                            demand_str = f"{demand.source.get_name()}->{demand.destination.get_name()} with {demand.maximumTransmissionRate} Mbps"
+                            Logger().info(f"Demand {demand_str}:")
+                            effectiveness_ratio = result.variables[lp_task.get_flows()[demand]]
+                            Logger().info(f"\t * optimal effectiveness ratio is {round(effectiveness_ratio, 6)} ({round(effectiveness_ratio * 100, 2)}% of the requested goodput)")
+                            Logger().info(f"\t * optimal goodput is {result.variables[f'{SRC_OVERALL_FLOW_NAME}_{lp_task.get_flows()[demand]}']} Mbps / {demand.maximumTransmissionRate} Mbps")
                     else:
                         # We need to virtualize the network but also apply the Traffic Control rules
                         try:

@@ -39,9 +39,9 @@ class GLOPSolver(LpSolver):
     def __init__(self) -> None:
         super().__init__()
         # Create the solver
-        solver = pywraplp.Solver.CreateSolver("GLOP")
+        solver = pywraplp.Solver.CreateSolver("SCIP_MIXED_INTEGER_PROGRAMMING")
         if not solver:
-            raise UnavailableSolverError("GLOB solver unavailable.")
+            raise UnavailableSolverError("GLOP solver unavailable.")
         # Save parameters
         self._solver = solver
 
@@ -51,11 +51,16 @@ class GLOPSolver(LpSolver):
 
     def solve(self) -> LPResult:
         result = self.solver.Solve()
+
+        # Extract all variables and their values
+        variables = {}
+        for variable in self.solver.variables():
+            variables[variable.name()] = variable.solution_value()
+
         print("INTERNAL RESULT:", result)
-        # FIXME: This must be implemented
         if result != pywraplp.Solver.OPTIMAL:
             if result == pywraplp.Solver.FEASIBLE:
-                return GLOPSolver.LPResult(SolverStatus.FEASIBLE, 0, {})
+                return GLOPSolver.LPResult(SolverStatus.FEASIBLE, 0, variables)
             else:
-                return GLOPSolver.LPResult(SolverStatus.INFEASIBLE, 0, {})
-        return GLOPSolver.LPResult(SolverStatus.OPTIMAL, 0, {})
+                return GLOPSolver.LPResult(SolverStatus.INFEASIBLE, 0, variables)
+        return GLOPSolver.LPResult(SolverStatus.OPTIMAL, 0, variables)
