@@ -42,7 +42,7 @@ class GLOPSolver(LpSolver):
         # Create the solver
         solver = pywraplp.Solver.CreateSolver("SCIP_MIXED_INTEGER_PROGRAMMING")
         if not solver:
-            raise UnavailableSolverError("GLOP solver unavailable.")
+            raise UnavailableSolverError("SCIP_MIXED_INTEGER_PROGRAMMING solver unavailable.")
         # Save parameters
         self._solver = solver
 

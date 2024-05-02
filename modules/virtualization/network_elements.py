@@ -8,10 +8,10 @@ from modules.util.network import Ipv4Subnet
 
 
 class VirtualNetworkInterface:
-    def __init__(self, name: str, physical_interface: NetworkInterface):
+    def __init__(self, name: str, physical_interface: NetworkInterface, is_blacklisted: bool = False):
         self._name = name
         self._physical_interface = physical_interface
-
+        self._is_blacklisted = is_blacklisted
     @property
     def name(self) -> str:
         return self._name
@@ -19,6 +19,16 @@ class VirtualNetworkInterface:
     @property
     def physical_interface(self) -> NetworkInterface:
         return self._physical_interface
+    
+    @property
+    def is_blacklisted(self) -> bool:
+        return self._is_blacklisted
+    
+    def flag_blacklisted(self):
+        self._is_blacklisted = True
+    
+    def clear_blacklisted_flag(self):
+        self._is_blacklisted = False
     
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, VirtualNetworkInterface):

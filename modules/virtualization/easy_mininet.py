@@ -179,6 +179,12 @@ class EasyMininet():
                 # Print the path node
                 print("\t *", target_router.get_name(), "via", target_interface.name, "with capacity", path_node.capacity, "Mbps")
             
+                # TODO: Apply the traffic control rules to limit the bandwidth of the interface.
+                # If the capacity of that specific link is 0, we need to create a rule that forbids all traffic.
+                # 1. Drop a
+            
+                # TODO: Then, we need also to use IP tables
+            
                 # Get the Mininet node of the router
                 # node = self._net.get(target_router.get_name())
 
