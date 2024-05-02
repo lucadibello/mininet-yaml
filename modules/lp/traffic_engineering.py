@@ -1,7 +1,7 @@
 from typing import Tuple, cast
 
 from modules.lp.lp_models import LPNetwork, LPTask
-from modules.lp.solver import GLOPSolver
+from modules.lp.solver import GLOPSolver, SolverStatus
 from modules.models.network_elements import Demand, NetworkElement
 from modules.models.topology import NetworkTopology
 from modules.virtualization.network_elements import VirtualHost, VirtualNetwork, VirtualNetworkElement, VirtualRouter, VirtualSwitch
@@ -33,7 +33,103 @@ def next_alpha_id(count: int, start_letter: str = "A") -> str:
             remaining = remaining // 26
     return str_id
 
-def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, virtual_network: VirtualNetwork) -> Tuple[GLOPSolver, LPTask]:
+def ensure_result_set(func):
+    def wrapper(self, *args, **kwargs):
+        if not self._has_result:
+            raise ValueError("The result has not been parsed yet.")
+        return func(self, *args, **kwargs)
+    return wrapper
+    
+class TrafficEngineeringLPResult():
+
+    class FlowData():
+
+        class FlowPathNode():
+            def __init__(self, lp_route: LPNetwork.LPRoute, capacity: float) -> None:
+                self._lp_route = lp_route
+                self._capacity = capacity
+            
+            get_lp_route = lambda self: self._lp_route
+            get_capacity = lambda self: self._capacity
+  
+        def __init__(self, flow_name: str, flow_path: list[FlowPathNode],
+               effectiveness_ratio: float, actual_flow: int) -> None:
+            self._flow_name = flow_name
+            self._flow_path = flow_path
+            self._effective_ratio = effectiveness_ratio
+            self._actual_flow = actual_flow
+        
+        get_flow_name = lambda self: self._flow_name
+        get_flow_path = lambda self: self._flow_path
+        get_flow_capacity = lambda self: self._flow_capacity
+        get_effectiveness_ratio = lambda self: self._effective_ratio
+        get_actual_flow = lambda self: self._actual_flow
+ 
+    def _get_binary_route_var_name(self, flow_name: str, lp_route: LPNetwork.LPRoute) -> str:
+        return f"{flow_name}_{lp_route.lp_variable_name}"
+    def _get_capacity_route_var_name(self, flow_name: str, lp_route: LPNetwork.LPRoute) -> str:
+        return f"{flow_name}_{ROUTE_CAPACITY}_{lp_route.lp_variable_name}"
+    
+    def __init__(self, lp_network: LPNetwork, lp_task: LPTask, used_routes: list[LPNetwork.LPRoute]) -> None:
+        self._lp_network = lp_network
+        self._lp_task = lp_task
+        self._used_routes = used_routes
+        self._flow_data = dict[Demand, TrafficEngineeringLPResult.FlowData]()
+        self._has_result = False
+
+    def parse_result(self, result: GLOPSolver.LPResult) -> None:
+        # First of all, store the status of the outcome (OPTIMAL, FEASIBLE, INFEASIBLE,..)
+        self._status = result.status
+        # Store the objective value of the LP problem
+        self._objective_value = result.objective_value
+
+        self._flow_path = dict[Demand, list[LPNetwork.LPRoute]]()
+        self._flow_capacity = dict[Demand, dict[LPNetwork.LPRoute, float]]()
+        # For each flow, store the path that has been chosen by the solver
+        for demand, flow_name in self._lp_task.get_flows().items():
+            self._flow_path[demand] = []
+            self._flow_capacity[demand] = dict()
+            for lp_route in self._used_routes:
+                # Get the value of the binary variable
+                if result.variables[self._get_binary_route_var_name(flow_name, lp_route)] == 1:
+                    # Store the path
+                    self._flow_path[demand].append(lp_route)
+                # Store the capacity of the route
+                self._flow_capacity[demand][lp_route] = result.variables[self._get_capacity_route_var_name(flow_name, lp_route)]
+            
+            #
+            # FIXME: i need to create a new object to store all the information for each flow!
+            #
+            # Goodput: result.variables[f'{SRC_OVERALL_FLOW_NAME}_{traffic_eng_task.get_lp_task().get_flows()[demand]
+            
+            # Extract the overall flow of the demand
+            # Extract the
+        self._has_result = True
+    
+    @ensure_result_set
+    def get_status(self) -> SolverStatus:
+        return self._status
+    
+    @ensure_result_set
+    def get_objective_value(self) -> float:
+        return self._objective_value
+
+    @ensure_result_set
+    def get_flows_data(self) -> dict[Demand, FlowData]:
+        return self._flow_data
+    
+    @ensure_result_set
+    def get_flow_path(self, demand: Demand) -> list[LPNetwork.LPRoute]:
+        return self._flow_path[demand]
+    
+    @ensure_result_set
+    def get_flow_capacity(self, demand: Demand) -> dict[LPNetwork.LPRoute, float]:
+        return self._flow_capacity[demand]
+
+    def get_lp_task(self) -> LPTask:
+        return self._lp_task
+
+def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, virtual_network: VirtualNetwork) -> Tuple[GLOPSolver, TrafficEngineeringLPResult]:
     """
     This function takes a VirtualNetwork object and returns a Linear Programming task object that represents the traffic
     engineering problem of the virtual network. The Linear Programming task should be ready to be solved by an external
@@ -377,7 +473,7 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
         task.add_constraint_group(flow_group)	
 
     # Return the generated lp_network and the relative task describing the traffic engineering problem
-    return (glop, task)
+    return (glop, TrafficEngineeringLPResult(lp_network, task, core_lp_routes))
 
 def compute_in_out_paths(virtual_network: VirtualNetwork, lp_network: LPNetwork) -> tuple[dict[VirtualNetworkElement, list[LPNetwork.LPRoute]], dict[VirtualNetworkElement, list[LPNetwork.LPRoute]]]:
     # We build the in_routes and out_routes dictionaries to store the input and output routes of each element

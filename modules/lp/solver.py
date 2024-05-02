@@ -64,3 +64,10 @@ class GLOPSolver(LpSolver):
             else:
                 return GLOPSolver.LPResult(SolverStatus.INFEASIBLE, 0, variables)
         return GLOPSolver.LPResult(SolverStatus.OPTIMAL, 0, variables)
+
+    def set_verbose(self, verbose: bool):
+        if verbose:
+            self.solver.EnableOutput()
+        else:
+            self.solver.DisableOutput()
+        

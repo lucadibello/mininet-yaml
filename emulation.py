@@ -53,9 +53,8 @@ def main():
             if len(topology.get_demands()) > 0:
                 # Create the LP problem
                 Logger().info("Generating the Traffic Engineering LP problem from the specified demands...")
-                glop_solver, lp_task = traffic_engineering_task_from_virtual_network(topology, virtual_network)
-
-                glop_solver.solver.EnableOutput()
+                glop_solver, traffic_eng_task = traffic_engineering_task_from_virtual_network(topology, virtual_network)
+                glop_solver.set_verbose(True)
 
                 print("Total constraints:", glop_solver.solver.NumConstraints())
                 print("Total variables:", glop_solver.solver.NumVariables())
@@ -65,35 +64,21 @@ def main():
 
                 # Check if we need to virtualize or not
                 if is_lp:
-                    print(lp_task.to_cplex())
+                    print(traffic_eng_task.get_lp_task().to_cplex())
                 else:
-                    # Solve the problem
+                    # Solve the problem + parse it
                     Logger().info("Solving the Traffic Engineering LP problem...")
-                    result = glop_solver.solve()
+                    traffic_eng_task.parse_result(glop_solver.solve())
 
-                    
-                    print("Solution:")
-                    print("Objective value =", glop_solver.solver.Objective().Value())
-                    print(f"{MIN_MAX_NAME} =", result.variables[MIN_MAX_NAME])
-                    
-                    for flow_name in lp_task.get_flows().values():
-                        print(f"{flow_name} =", result.variables[flow_name])
-                    for flow_name in lp_task.get_flows().values():
-                        print(f"lambda_{flow_name} =", result.variables[f"lambda_{flow_name}"])
-                    print()
-                    
-                    # Print the value of all the variables
-                    for variable in glop_solver.solver.variables():
-                        print(f"{variable.name()} = {variable.solution_value()}")
+                    # Log the most important information about the result
+                    Logger().info(f"LP problem solved with status: {traffic_eng_task.get_status()}, minimum effectiveness ratio: {traffic_eng_task.get_objective_value}")
 
-                    # Print only the goodput for each demand
                     if is_print_goodput:
-                        for demand in topology.get_demands():
+                        for demand, flow in traffic_eng_task.get_flows_data().items():
                             demand_str = f"{demand.source.get_name()}->{demand.destination.get_name()} with {demand.maximumTransmissionRate} Mbps"
                             Logger().info(f"Demand {demand_str}:")
-                            effectiveness_ratio = result.variables[lp_task.get_flows()[demand]]
-                            Logger().info(f"\t * optimal effectiveness ratio is {round(effectiveness_ratio, 6)} ({round(effectiveness_ratio * 100, 2)}% of the requested goodput)")
-                            Logger().info(f"\t * optimal goodput is {result.variables[f'{SRC_OVERALL_FLOW_NAME}_{lp_task.get_flows()[demand]}']} Mbps / {demand.maximumTransmissionRate} Mbps")
+                            Logger().info(f"\t * optimal effectiveness ratio is {round(flow.get_effectiveness_ratio(), ROUND_DIGITS)} ({round(flow.get_effectiveness_ratio() * 100, 2)}% of the requested goodput)")
+                            Logger().info(f"\t * optimal goodput is {flow.get_actual_flow()} Mbps / {demand.maximumTransmissionRate} Mbps")
                     else:
                         # We need to virtualize the network but also apply the Traffic Control rules
                         try:
