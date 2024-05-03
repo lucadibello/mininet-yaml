@@ -1,4 +1,4 @@
-from typing import Optional, cast
+from typing import Optional, TypedDict, cast
 from mininet.net import Mininet
 
 from mininet.node import Node
@@ -10,6 +10,19 @@ from modules.util.exceptions import NetworkError
 from modules.util.logger import Logger
 from modules.util.mininet import executeChainedCommands, executeCommand
 from modules.virtualization.network_elements import Route, VirtualNetwork, VirtualNetworkInterface
+
+class TrafficControlSettings(TypedDict):
+    burst: tuple[int, str]
+    latency: tuple[int, str]
+    peek_rate: tuple[int, str]
+    min_burst: int
+
+_default_settings: TrafficControlSettings = {
+    "burst": (5, "kb"),
+    "latency": (70, "ms"),
+    "peek_rate": (2, "mbit"),
+    "min_burst": 1540
+}
 
 def ensure_network_started(func):
     """
@@ -162,9 +175,11 @@ class EasyMininet():
         
         # Mark the virtual network as started
         self._is_started = True
-
+    
     @ensure_network_started
-    def apply_traffic_control(self, flows_data: dict[Demand, TrafficEngineeringLPResult.FlowData]):
+    def apply_traffic_control(self, flows_data: dict[Demand, TrafficEngineeringLPResult.FlowData], settings: TrafficControlSettings = _default_settings):
+        # Traffic control parameters
+
         # For each demand, apply the traffic control rules to the corresponding interfaces
         for demand, flow_data in flows_data.items():
             print(f"Applying traffic control rules for demand {demand.source.get_name()} -> {demand.destination.get_name()} with {demand.maximumTransmissionRate} Mbps:")
@@ -177,18 +192,37 @@ class EasyMininet():
                 target_interface = virt_route.via_interface
 
                 # Print the path node
-                print("\t *", target_router.get_name(), "via", target_interface.name, "with capacity", path_node.capacity, "Mbps")
+                print("\t * Applying traffic control rules to path node:", target_router.get_name(), "on interface", target_interface.name)
             
                 # TODO: Apply the traffic control rules to limit the bandwidth of the interface.
                 # If the capacity of that specific link is 0, we need to create a rule that forbids all traffic.
-                # 1. Drop a
-            
-                # TODO: Then, we need also to use IP tables
             
                 # Get the Mininet node of the router
-                # node = self._net.get(target_router.get_name())
+                node = self._net.get(target_router.get_name())
+                node = cast(Optional[Node], node)
+                if node is None:
+                    raise ValueError(
+                            f"Node {target_router.get_name()} not found in the virtual network. There is a problem with the network topology."
+                    )
 
+                # Apply traffic control rule to the specific interface
+                fullname = f"{target_router.get_name()}-{target_interface.name}"
 
+				# Extract information from traffic control settings
+                burst = settings.get("burst", _default_settings["burst"])
+                latency = settings.get("latency", _default_settings["latency"])
+                peek_rate = settings.get("peek_rate", _default_settings["peek_rate"])
+                min_burst = settings.get("min_burst", _default_settings["min_burst"])
+    
+                # Execute command on node to limit the bandwidth of the interface using a Token Bucket Filter (TBF)
+                # NOTE: the actual bandwidth of the route is the capacity of the link
+                executeCommand(node,
+                            f"tc qdisc add dev {fullname} root "
+                            f"tbf rate {path_node.capacity}mbit "
+                               f"burst {burst[0]}{burst[1]} "
+                               f"latency {latency[0]}{latency[1]}"
+                               f"peekrate {peek_rate[0]}{peek_rate[1]}"
+                               f"minburst {min_burst}")
     def stop_network(self):
         """
         This method stops the virtual network and cleans up the Mininet environment.
