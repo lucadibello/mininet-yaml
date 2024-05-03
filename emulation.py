@@ -47,8 +47,9 @@ def main():
             print(graph)
         else:
             Logger().info("Creating virtual network...")
+            has_demands = len(topology.get_demands()) > 0
             # Create and virtualize decoded topology
-            easy_mn, virtual_network = create_network_from_virtual_topology(topology)
+            easy_mn, virtual_network = create_network_from_virtual_topology(topology, propagate_routes=not has_demands)
 
             # Check if we need to solve the LP problem before starting the network
             if len(topology.get_demands()) > 0:
@@ -67,9 +68,9 @@ def main():
 
                     # Print all variables
                     if is_verbose:
-                        Logger().info("LP problem variables:")
+                        Logger().debug("LP problem variables:")
                         for var in glop_solver.solver.variables():
-                            Logger().info(f"\t * {var.name()} = {var.solution_value()}")  
+                            Logger().debug(f"\t * {var.name()} = {var.solution_value()}")  
 
                     # Check status and warn the user if needed
                     if traffic_eng_task.get_status() == SolverStatus.OPTIMAL or traffic_eng_task.get_status() == SolverStatus.FEASIBLE:

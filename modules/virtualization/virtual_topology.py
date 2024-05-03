@@ -97,9 +97,6 @@ class VirtualNetworkTopology(Topo):
         # 3) Connect routers together using alternative paths (if possible)
         self._link_router_alternative_paths(network.get_routers(), virtual_network)
         
-        # 4) Propagate routing tables to all routers in the network
-        self._propagate_routes(network.get_routers(), virtual_network)
-
     def _link_routers_best_path(
         self,
         routers: list[Router],
@@ -581,62 +578,3 @@ class VirtualNetworkTopology(Topo):
                             via_interface_name=f"{switch}-eth0",
                         )
                     )
-
-    def _propagate_routes(self, routers: list[Router], virtual_network: VirtualNetwork):
-        Logger().debug("Propagating routing information to routers...")
-
-        def _get_virtual_router(router: Router) -> VirtualRouter:
-            virt_router = virtual_network.get(router.get_name())
-            if virt_router is None:
-                raise ValueError(
-                    f"Router {src_router.get_name()} not found in the virtual network. Are you calling this method after '_link_routers_best_path'?"
-                )
-            return cast(VirtualRouter, virt_router)
-
-        # For each router, print its routes
-        for src_router in routers:
-            # Get the virtual router object
-            src_virtual_router = _get_virtual_router(src_router)
-
-            # Identify all the routes that can be reached from this router from the routes
-            routes_to_routers = [
-                route
-                for route in src_virtual_router.get_routes()
-                if isinstance(route.to_element, VirtualRouter)
-            ]
-
-            # For each destination router, we need to propagate the routes that can be reached only from the src_router and not from the dst_router
-            for route_to_router in routes_to_routers:
-                # Identify routes that are not present in the router we are propagating the routes to
-                router_target = route_to_router.to_element
-
-                # Identify also the routes we need to propagate to the target router
-                dst_missing_routes = list[Route]()
-                for route in src_virtual_router.get_routes():
-                    for dst_route in router_target.get_routes():
-                        if route.subnet == dst_route.subnet:
-                            break
-                    else:
-                        dst_missing_routes.append(route)
-
-                # Find all possible routes from src_router to router_target in order to have the correct "via interface" for the missing routes
-                possible_routes = list[Route]()
-                for route in router_target.get_routes():
-                    if route.to_element == src_virtual_router:
-                        possible_routes.append(route)
-
-                # We need to add the missing routes to the destination router BUT we need to change the "via interface" to the one that connects dst_router to src_router via the link
-                for dst_missing_route in dst_missing_routes:
-                    # We need to update the missing route to match the target router configuration
-                    # In addition, if we have multiple routes between the routers, we add multiple route entries in order to provide failover capabilities
-                    for possible_route in possible_routes:
-                        # Create the new route
-                        new_route = Route(
-                            subnet=dst_missing_route.subnet,
-                            via_interface=possible_route.via_interface,
-                            to_element=src_virtual_router,
-                            dst_interface=possible_route.dst_interface,
-                            is_registered=False,  # Flag this route as not registered (we need to add it to the routing table manually)
-                        )
-                        # Register the new route in the target router
-                        router_target.add_route(new_route)

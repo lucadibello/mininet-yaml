@@ -94,13 +94,6 @@ class TrafficEngineeringLPResult():
         self._has_result = False
 
     def parse_result(self, result: CBCMIPSolver.LPResult) -> None:
-        
-        # Print all variables
-        for name, value in result.variables.items():
-            print(f"\t * {name} = {value}")
-        for name, value in result.constraints.items():
-            print(f"\t * {name} = {value}")
-  
         # First of all, store the status of the outcome (OPTIMAL, FEASIBLE, INFEASIBLE,..)
         self._status = result.status
         self._objective_value = result.objective_value
@@ -115,8 +108,8 @@ class TrafficEngineeringLPResult():
             for lp_route in self._used_routes:
                 # if the route has been chosen by the solver, create a path node + save the capacity
                 if result.variables[self._get_binary_route_var_name(flow_name, lp_route)] == 1:
-                    print(f"Route {lp_route.lp_variable_name} has been chosen for flow {flow_name}")
-                    print(f"\t * Source: {lp_route.src_element.get_name()}, Destination: {lp_route.route.to_element.get_name()}")
+                    Logger().debug(f"Route {lp_route.lp_variable_name} has been chosen for flow {flow_name}")
+                    Logger().debug(f"\t * Source: {lp_route.src_element.get_name()}, Destination: {lp_route.route.to_element.get_name()}")
 
                     # Get the constraint from this route or its reverse
                     capacity_var_name = self._get_capacity_route_var_name(lp_route)
@@ -134,7 +127,7 @@ class TrafficEngineeringLPResult():
                         Logger().warning(f"Capacity of route {lp_route.lp_variable_name} not found.")
                         continue
                     
-                    print(f"\t * Capacity: {capacity}")
+                    Logger().debug(f"\t * Capacity: {capacity}")
 
                     # Create a new FlowPathNode object
                     # FIXME: Get result from constraint value!
@@ -520,9 +513,6 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
         # Register constraint group
         task.add_constraint_group(flow_group)	
     
-    for var in glop.solver.variables():
-        print(f"Variable {var.name()}")
-
     # Return the generated lp_network and the relative task describing the traffic engineering problem
     return (glop, TrafficEngineeringLPResult(lp_network, task, core_lp_routes))
 
