@@ -94,8 +94,7 @@ def main():
                     else:
                         # We need to virtualize the network but also apply the Traffic Control rules
                         try:
-                            easy_mn.start_network()
-                            easy_mn.apply_traffic_control(traffic_eng_task.get_flows_data())
+                            easy_mn.start_network_with_demands(traffic_eng_task.get_flows_data())
                             easy_mn.start_shell()
                         finally:
                             easy_mn.stop_network()

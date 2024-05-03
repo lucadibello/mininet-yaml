@@ -43,6 +43,10 @@ class EasyMininet():
         self._virtual_network = virtual_network
         self._is_started = False
 
+    def start_network_with_demands(self, flow_data):
+        # Propagate the routes to the routers
+        self._virtual_network
+
     def start_network(self):
         """
         This method starts the virtual network and configures the IP addresses and routing tables of all elements of the network
