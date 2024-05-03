@@ -26,23 +26,24 @@ class LpSolver():
         cpp_flags.log_prefix = False
         init.CppBridge.set_flags(cpp_flags)
     
-class GLOPSolver(LpSolver):
+class CBCMIPSolver(LpSolver):
     """
     This class represents a Linear Programming solver that uses the GLOP backend from Google OR-Tools.
     """
     
     class LPResult():
-        def __init__(self, status: SolverStatus, objective_value: float, variables: dict[str, Union[int,float]]) -> None:
+        def __init__(self, status: SolverStatus, objective_value: float, variables: dict[str, Union[int,float]], constraints: dict[str, Union[int,float]]) -> None:
             self.status = status
             self.objective_value = objective_value
             self.variables = variables
+            self.constraints = constraints
 
     def __init__(self) -> None:
         super().__init__()
         # Create the solver
-        solver = pywraplp.Solver.CreateSolver("SCIP_MIXED_INTEGER_PROGRAMMING")
+        solver = pywraplp.Solver.CreateSolver("CBC_MIXED_INTEGER_PROGRAMMING")
         if not solver:
-            raise UnavailableSolverError("SCIP_MIXED_INTEGER_PROGRAMMING solver unavailable.")
+            raise UnavailableSolverError("CBC_MIXED_INTEGER_PROGRAMMING solver unavailable.")
         # Save parameters
         self._solver = solver
 
@@ -52,7 +53,7 @@ class GLOPSolver(LpSolver):
 
     def solve(self) -> LPResult:
         result = self.solver.Solve()
-
+ 
         # Extract all variables and their values
         variables = dict[str, Union[int,float]]()
         for variable in self.solver.variables():
@@ -60,12 +61,17 @@ class GLOPSolver(LpSolver):
 
         # Get objective value
         objective_value = self.solver.Objective().Value()
-        if result != pywraplp.Solver.OPTIMAL:
-            if result == pywraplp.Solver.FEASIBLE:
-                return GLOPSolver.LPResult(SolverStatus.FEASIBLE, objective_value, variables)
-            else:
-                return GLOPSolver.LPResult(SolverStatus.INFEASIBLE, objective_value, variables)
-        return GLOPSolver.LPResult(SolverStatus.OPTIMAL, objective_value, variables)
+        if result == pywraplp.Solver.OPTIMAL or result == pywraplp.Solver.FEASIBLE:
+            # compute constraint activities
+            activities = self.solver.ComputeConstraintActivities()
+            constraints = dict[str, Union[int,float]]()
+            for constraint in self.solver.constraints():
+                constraints[constraint.name()] = activities[constraint.index()]
+
+            actual_result = SolverStatus.OPTIMAL if result == pywraplp.Solver.OPTIMAL else SolverStatus.FEASIBLE
+            return CBCMIPSolver.LPResult(actual_result, objective_value, variables, constraints)
+        else:
+            return CBCMIPSolver.LPResult(SolverStatus.INFEASIBLE, objective_value, variables, {})
 
     def set_verbose(self, verbose: bool):
         if verbose:

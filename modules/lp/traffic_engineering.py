@@ -1,9 +1,10 @@
 from typing import Tuple, cast
 
 from modules.lp.lp_models import LPNetwork, LPTask
-from modules.lp.solver import GLOPSolver, SolverStatus
+from modules.lp.solver import CBCMIPSolver, SolverStatus
 from modules.models.network_elements import Demand, NetworkElement
 from modules.models.topology import NetworkTopology
+from modules.util.logger import Logger
 from modules.virtualization.network_elements import VirtualNetwork, VirtualNetworkElement, VirtualRouter, VirtualSwitch
 
 from ortools.linear_solver.pywraplp import Objective, Variable
@@ -80,8 +81,8 @@ class TrafficEngineeringLPResult():
 
     def _get_binary_route_var_name(self, flow_name: str, lp_route: LPNetwork.LPRoute) -> str:
         return f"{flow_name}_{lp_route.lp_variable_name}"
-    def _get_capacity_route_var_name(self, flow_name: str, lp_route: LPNetwork.LPRoute) -> str:
-        return f"{flow_name}_{ROUTE_CAPACITY}_{lp_route.lp_variable_name}"
+    def _get_capacity_route_var_name(self, lp_route: LPNetwork.LPRoute) -> str:
+        return f"{ROUTE_CAPACITY_CONSTRAINT}_{lp_route.lp_variable_name}"
     def _get_flow_var_name(self, flow_name: str) -> str:
         return f"{SRC_OVERALL_FLOW_NAME}_{flow_name}"
        
@@ -92,13 +93,20 @@ class TrafficEngineeringLPResult():
         self._flow_data = dict[Demand, TrafficEngineeringLPResult.FlowData]()
         self._has_result = False
 
-    def parse_result(self, result: GLOPSolver.LPResult) -> None:
+    def parse_result(self, result: CBCMIPSolver.LPResult) -> None:
+        
+        # Print all variables
+        for name, value in result.variables.items():
+            print(f"\t * {name} = {value}")
+        for name, value in result.constraints.items():
+            print(f"\t * {name} = {value}")
+  
         # First of all, store the status of the outcome (OPTIMAL, FEASIBLE, INFEASIBLE,..)
         self._status = result.status
         self._objective_value = result.objective_value
         self._min_effectiveness_ratio = result.variables[MIN_MAX_NAME]
         flow_data_dict = dict[Demand, TrafficEngineeringLPResult.FlowData]()
-        
+
         # For each flow, store the path that has been chosen by the solver
         total_flows = 0
         for demand, flow_name in self._lp_task.get_flows().items():
@@ -109,14 +117,33 @@ class TrafficEngineeringLPResult():
                 if result.variables[self._get_binary_route_var_name(flow_name, lp_route)] == 1:
                     print(f"Route {lp_route.lp_variable_name} has been chosen for flow {flow_name}")
                     print(f"\t * Source: {lp_route.src_element.get_name()}, Destination: {lp_route.route.to_element.get_name()}")
-                    print(f"\t * Capacity: {result.variables[self._get_capacity_route_var_name(flow_name, lp_route)]}")
+
+                    # Get the constraint from this route or its reverse
+                    capacity_var_name = self._get_capacity_route_var_name(lp_route)
+                    capacity = -1
+                    if capacity_var_name in result.constraints:
+                        # Get the capacity of the route
+                        capacity = result.constraints[capacity_var_name]
+                    else:
+                        # Otherwise, try to flip the route and look for its reverse
+                        rev_route = self._lp_network.get_reverse_lp_route(lp_route.route)
+                        rev_capacity_var_name = self._get_capacity_route_var_name(rev_route)
+                        if rev_capacity_var_name in result.constraints:
+                            capacity = result.constraints[rev_capacity_var_name]
+                    if capacity == -1:
+                        Logger().warning(f"Capacity of route {lp_route.lp_variable_name} not found.")
+                        continue
+                    
+                    print(f"\t * Capacity: {capacity}")
+
                     # Create a new FlowPathNode object
-                    flow_nodes.append(TrafficEngineeringLPResult.FlowData.FlowPathNode(lp_route, result.variables[self._get_capacity_route_var_name(flow_name, lp_route)]))
+                    # FIXME: Get result from constraint value!
+                    flow_nodes.append(TrafficEngineeringLPResult.FlowData.FlowPathNode(lp_route, capacity))
 
             # Extract important statistics of the flow
             effectiveness_ratio= float(result.variables[flow_name]) # Actual effectiveness as a ratio of the requested goodput
             effective_flow = int(result.variables[self._get_flow_var_name(flow_name)]) # Goodput of the flow
-   
+
             # Create new flow data object
             flow_data_dict[demand] = TrafficEngineeringLPResult.FlowData(flow_name, flow_nodes, effectiveness_ratio, effective_flow)
         self._flow_data = flow_data_dict
@@ -150,7 +177,7 @@ class TrafficEngineeringLPResult():
     def get_lp_task(self) -> LPTask:
         return self._lp_task
 
-def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, virtual_network: VirtualNetwork) -> Tuple[GLOPSolver, TrafficEngineeringLPResult]:
+def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, virtual_network: VirtualNetwork) -> Tuple[CBCMIPSolver, TrafficEngineeringLPResult]:
     """
     This function takes a VirtualNetwork object and returns a Linear Programming task object that represents the traffic
     engineering problem of the virtual network. The Linear Programming task should be ready to be solved by an external
@@ -196,7 +223,7 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
     core_lp_routes = [lp_route for lp_route in lp_network.get_lp_routes() if is_valid_route(lp_route)]
 
     # Load LP solver
-    glop = GLOPSolver()
+    glop = CBCMIPSolver()
 
     # Create all variables needed for the LP problem
     variable_lookup = dict[str, Variable]()
@@ -385,10 +412,12 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
             # build or-tools constraint
             constraint = glop.solver.Constraint(0, 0, constraint_name)
             for in_var_name in in_var_names_capacity:
-                variable_lookup[in_var_name] = glop.solver.IntVar(0, glop.solver.infinity(), in_var_name)
+                if in_var_name not in variable_lookup:
+                    variable_lookup[in_var_name] = glop.solver.IntVar(0, glop.solver.infinity(), in_var_name)
                 constraint.SetCoefficient(variable_lookup[in_var_name], 1)
             for out_var_name in out_var_names_capacity:
-                variable_lookup[out_var_name] = glop.solver.IntVar(0, glop.solver.infinity(), out_var_name)
+                if out_var_name not in variable_lookup:
+                    variable_lookup[out_var_name] = glop.solver.IntVar(0, glop.solver.infinity(), out_var_name)
                 constraint.SetCoefficient(variable_lookup[out_var_name], -1)
 
             # create constraint in cplex syntax
@@ -490,6 +519,9 @@ def traffic_engineering_task_from_virtual_network(topology: NetworkTopology, vir
 
         # Register constraint group
         task.add_constraint_group(flow_group)	
+    
+    for var in glop.solver.variables():
+        print(f"Variable {var.name()}")
 
     # Return the generated lp_network and the relative task describing the traffic engineering problem
     return (glop, TrafficEngineeringLPResult(lp_network, task, core_lp_routes))

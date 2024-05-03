@@ -14,13 +14,11 @@ from modules.virtualization.network_elements import Route, VirtualNetwork, Virtu
 class TrafficControlSettings(TypedDict):
     burst: tuple[int, str]
     latency: tuple[int, str]
-    peek_rate: tuple[int, str]
     min_burst: int
 
 _default_settings: TrafficControlSettings = {
     "burst": (5, "kb"),
     "latency": (70, "ms"),
-    "peek_rate": (2, "mbit"),
     "min_burst": 1540
 }
 
@@ -179,6 +177,10 @@ class EasyMininet():
     @ensure_network_started
     def apply_traffic_control(self, flows_data: dict[Demand, TrafficEngineeringLPResult.FlowData], settings: TrafficControlSettings = _default_settings):
         # Traffic control parameters
+        for demand, flow_data in flows_data.items():
+            print(f"Flow from {demand.source.get_name()} to {demand.destination.get_name()} with {demand.maximumTransmissionRate} Mbps:")
+            for node in flow_data.flow_path:
+                print("\t *" + node.lp_route.src_element.get_name() + ":" + node.lp_route.route.via_interface.name + " -> " + node.lp_route.dst_element.get_name() + ":" + node.lp_route.route.dst_interface.name, " with capacity:", node.capacity, "Mbps")
 
         # For each demand, apply the traffic control rules to the corresponding interfaces
         for demand, flow_data in flows_data.items():
@@ -189,7 +191,7 @@ class EasyMininet():
                 virt_route = path_node.lp_route.route
                 # Get the element + the interface in which we need to apply the traffic control rules to
                 target_router = virt_route.to_element
-                target_interface = virt_route.via_interface
+                target_interface = virt_route.dst_interface
 
                 # Print the path node
                 print("\t * Applying traffic control rules to path node:", target_router.get_name(), "on interface", target_interface.name)
@@ -205,24 +207,19 @@ class EasyMininet():
                             f"Node {target_router.get_name()} not found in the virtual network. There is a problem with the network topology."
                     )
 
-                # Apply traffic control rule to the specific interface
-                fullname = f"{target_router.get_name()}-{target_interface.name}"
-
-				# Extract information from traffic control settings
+                # Extract information from traffic control settings
                 burst = settings.get("burst", _default_settings["burst"])
                 latency = settings.get("latency", _default_settings["latency"])
-                peek_rate = settings.get("peek_rate", _default_settings["peek_rate"])
                 min_burst = settings.get("min_burst", _default_settings["min_burst"])
-    
+
                 # Execute command on node to limit the bandwidth of the interface using a Token Bucket Filter (TBF)
                 # NOTE: the actual bandwidth of the route is the capacity of the link
                 executeCommand(node,
-                            f"tc qdisc add dev {fullname} root "
+                            f"tc qdisc add dev {target_interface.name} root "
                             f"tbf rate {path_node.capacity}mbit "
-                               f"burst {burst[0]}{burst[1]} "
-                               f"latency {latency[0]}{latency[1]}"
-                               f"peekrate {peek_rate[0]}{peek_rate[1]}"
-                               f"minburst {min_burst}")
+                            f"burst {int(burst[0])}{burst[1]} "
+                            f"latency {int(latency[0])}{latency[1]} "
+                            f"minburst {int(min_burst)}")
     def stop_network(self):
         """
         This method stops the virtual network and cleans up the Mininet environment.
