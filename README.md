@@ -118,7 +118,7 @@ hosts:
 
 #### 5.1.3. Demands (optional)
 
-If your topology requires specific traffic management, the `demands` section allows you to define the maximum goodput demands between hosts. This section triggers traffic engineering functionalities where the tool adjusts link capacities and routing configurations to meet these demands.
+If your topology requires specific traffic **management**, the `demands` section allows you to define the maximum goodput demands between hosts. This section triggers traffic engineering functionalities where the tool adjusts link capacities and routing configurations to meet these demands.
 
 ### 5.2. Functionality of Interface Costs
 
