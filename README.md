@@ -127,7 +127,7 @@ The cost assigned to each interface serves dual purposes:
 
 2. **Traffic Engineering**: When the demands section is included, the cost influences the adjustment of link capacities and routing tables to achieve the specified goodput, integrating a strategic layer to network management.
 
-> **Note**: Absence of the **demands** section defaults the cost utility to only influence routing decisions.
+> **Note**: Absence of the `demands` section defaults the cost utility to only influence routing decisions.
 
 ## Examples
 
