@@ -242,7 +242,6 @@ class LPNetwork():
                     if all(entry != p and rev_entry != p for p in path):  # Check that this node has not been visited in the current path
                         new_path = path + [entry]
                         stack.append((neighbor, new_path))
-                        print(f"Adding {neighbor.get_name()} via {route} to the stack")
 
         # Return all the paths
         return found_paths

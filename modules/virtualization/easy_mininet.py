@@ -77,8 +77,6 @@ class EasyMininet():
             dst_interfaces = dst_element.get_virtual_interfaces()
 
             Logger().debug(f"Creating marker rule for demand {demand.source.get_name()} -> {demand.destination.get_name()} with marker {marker_id}")
-            # for node in flow_data.flow_path:
-            #     print(f"\t * {node.lp_route.src_element.get_name()} -> {node.lp_route.route.to_element.get_name()} with capacity {node.capacity} Mbps")
             # Get all elements involved in the demands and let them know about the marker
             for path_node in flow_data.flow_path:
                 # Get the underlying virtual route
@@ -262,15 +260,9 @@ class EasyMininet():
     
     @ensure_network_started
     def apply_traffic_control(self, flows_data: dict[Demand, TrafficEngineeringLPResult.FlowData], settings: TrafficControlSettings = _default_settings):
-        # Traffic control parameters
+		# For each demand, apply the traffic control rules to the corresponding interfaces
         for demand, flow_data in flows_data.items():
-            print(f"Flow from {demand.source.get_name()} to {demand.destination.get_name()} with {demand.maximumTransmissionRate} Mbps:")
-            for src_node in flow_data.flow_path:
-                print("\t *" + src_node.lp_route.src_element.get_name() + ":" + src_node.lp_route.route.via_interface.name + " -> " + src_node.lp_route.dst_element.get_name() + ":" + src_node.lp_route.route.dst_interface.name, " with capacity:", src_node.capacity, "Mbps")
-
-        # For each demand, apply the traffic control rules to the corresponding interfaces
-        for demand, flow_data in flows_data.items():
-            print(f"Applying traffic control rules for demand {demand.source.get_name()} -> {demand.destination.get_name()} with {demand.maximumTransmissionRate} Mbps:")
+            Logger().debug(f"Applying traffic control rules for demand {demand.source.get_name()} -> {demand.destination.get_name()} with {demand.maximumTransmissionRate} Mbps:")
             # Get all elements involved in the demand
             for path_node in flow_data.flow_path:
                 # Get the Mininet node of the router
