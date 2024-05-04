@@ -136,7 +136,7 @@ In the directory [`examples`](./examples), you can find some YAML files that def
 
 ### 6.1. Example 1: Simple dumbbell network
 
-This example defines a simple dumbbell network with two routers and two hosts. The routers are connected to each other, and each host is connected to one of the routers. This is the topology built by the Mininet-YAML tool:
+This example defines a simple dumbbell network with two routers and six hosts. The routers are connected to each other, and each host is connected to a router via a switch. This is the topology built by *Mininet-YAML*:
 
 <div style="width: 100%; display: block;">
     <p align="center">
@@ -147,15 +147,24 @@ This example defines a simple dumbbell network with two routers and two hosts. T
     </p>
 </div>
 
+From the diagram above, it is possible to see that the interface `eth1` of the router `r1` has been kept down as it is not connected to any other interface.
+
 > YAML configuration file available in [`examples/dumbell-network-no-cost.yaml`](./examples/dumbell-network-no-cost.yaml)
 
 ### 6.2. Example 2: Complex network with multiple routers and hosts
 
 This example defines a more complex network with 3 routers, 4 hosts, and multiple links between them. Each router has 3 interfaces, in which some have a connection. The cost of each link is used by the routing algorithm to determine the best path.
 
-`Mininet-YAML` will automatically add switches where necessary. This is the topology built by the Mininet-YAML tool:
+This is the resulting network topology:
 
-IMAGE!
+<div style="width: 100%; display: block;">
+	<p align="center">
+			<source media="(prefers-color-scheme: dark)" srcset="./docs/assets/examples_diagrams/example_2/example_2_light.svg">
+			<source media="(prefers-color-scheme: light)" srcset="./docs/assets/examples_diagrams/example_2/example_2_dark.svg">
+			<img alt="Example 2 - Network topology" src="./docs/assets/examples_diagrams/example_2/example_2_light.svg" />
+		</picture>
+	</p>
+</div>
 
 > YAML configuration file available in [`examples/complex-network-multilink-with-costs.yaml`](./examples/complex-network-multilink-with-costs.yaml)
 
