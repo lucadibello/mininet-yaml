@@ -21,41 +21,29 @@ Moreover, Mininet-YAML empowers users with advanced traffic engineering capabili
 
 ## Features
 
+## Key Features
+
+## Key Features
+
 🚀 **Rapid Network Deployment**: 
-- Generate a complete virtual network from a YAML file, automating connections and configurations.
+- Quickly generate and deploy complex virtual network topologies from a simple YAML configuration file.
 
-📊 **Intuitive Topology Visualization**: 
-- Outputs a visual representation of your network in Graphviz format directly to your terminal.
+📈 **Topology Visualization**: 
+- Automatically generate a visual representation of your network in Graphviz format for easy analysis and sharing.
 
-🌐 **Routing Tables Propagation**: 
-- Automatically configures routing tables and propagates them across the network to enable communication between all nodes.
+🌍 **Automated Network Configuration**: 
+- Seamlessly configure routing tables and propagate them across the network to ensure all nodes can communicate effectively.
 
-🛠️ **Goodput-based Traffic Engineering**: 
-- Automatically adjusts link capacities and routing tables to achieve a desired goodput between two nodes.
+🚸 **Advanced Traffic Engineering**: 
+- Utilize goodput specifications to automatically optimize network performance and manage traffic flows efficiently.
 
-🔄 **Multi-interface Nodes**: 
-- Supports complex setups with hosts and routers having multiple network interfaces.
+🛠️ **Enhanced Network Interaction**: 
+- Interact with network elements through a robust CLI, execute custom scripts, and use network diagnostic tools like `ping` and `wireshark` directly within virtual nodes.
 
-💰 **Link cost configuration**: 
-- Allows users to set the cost of a particular interface, used by the routing algorithm to determine the best path.
+🖥️ **Extended Application Support**: 
+- Support for GUI applications via X11 forwarding, allowing for graphical user interface operations on virtual hosts.
 
-❌ **Error Handling**: 
-- Provides detailed error messages during YAML file validation, virtual network creation, and runtime.
 
-📝 **Fine-grained logging and silent mode**: 
-- Offers verbose logging for debugging purposes and a silent mode to suppress output.
-
-💻 **Interactive CLI**: 
-- Provides a command-line interface to interact with network elements, enhancing manual testing and management.
-
-📜 **Custom Commands and scripts**: 
-- Allows users to run custom commands and scripts directly on virtual nodes.
-
-🖥️ **GUI Application Support**: 
-- Enables X11 forwarding to launch and use GUI-based applications on virtual hosts.
-
-🛠️ **Extensive Command Execution**: 
-- Facilitates running network diagnostic tools like `ping`, `traceroute`, and `wireshark` within virtual nodes.
 
 ## Getting started
 
