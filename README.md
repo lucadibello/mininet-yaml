@@ -173,24 +173,23 @@ From the diagram above, it is possible to see that the interface `eth1` of the r
 
 ### 6.3. Example 3: Complex network with multiple routers, hosts and demands
 
-In this example, we define a network with 4 routers, 4 hosts (two connected directly to the routers, and two connected to a switch), and 3 demands between the hosts:
+In this example, we configure a network comprising 4 routers and 4 hosts, where two hosts are directly connected to the routers, and the remaining two are connected via a switch. We define 3 demands specifying maximum transmission rates between the hosts:
 
-- Demand 1: Maximum transmission rate of 10 Mbps between `h1` and `h4`
-- Demand 2: Maximum transmission rate of 2 Mbps between `h4` and `h2`
-- Demand 3: Maximum transmission rate of 15 Mbps between `h3` and `h4`
+- **Demand 1**: Maximum transmission rate of 10 Mbps between `h1` and `h4`.
+- **Demand 2**: Maximum transmission rate of 2 Mbps between `h4` and `h2`.
+- **Demand 3**: Maximum transmission rate of 15 Mbps between `h3` and `h4`.
 
-The topology defines also the maximum bandwidth of each link, an important parameter for the traffic engineering optimization. This is the resulting network topology built by *Mininet-YAML*:
+Each link in the topology also has a defined maximum bandwidth, crucial for traffic engineering optimization. Below is the network topology constructed by *Mininet-YAML*:
 
 <div style="width: 100%; display: block;">
     <p align="center">
-            <img alt="Example 3 - Network topology" src="./docs/assets/examples_diagrams/example_3/example_3_topo.svg" />
-        </picture>
+        <img alt="Example 3 - Network topology" src="./docs/assets/examples_diagrams/example_3/example_3_topo.svg" />
     </p>
 </div>
 
-To ensure that the demands are met, the tool will adjust the link capacities and routing tables to achieve the specified goodput levels. Each demand will have a specific route to follow in order to achieve the desired goodput. These are the routes computed by the tool for each demand:
+The tool adjusts link capacities and routing tables to meet the specified demands. It computes specific routes for each demand to achieve the desired goodput. In the following subsection is possible to view graphical representation of the optimal routes determined by the *MILP* model for each demand. Given the constraints of the problem, it is not always feasible to perfectly satisfy all demands. The model aims to maximize the minimum effective goodput between the sources and destinations of each demand.
 
-The following diagrams shows the optimal paths computed by the MILP model for each demand. Note that, due to the nature of the problem, is not always possible to have an optimal capacity assignment that satisfies fully all the demands. The developed model maximizes the minimum effective goodput between the source and destination of each demand.
+Furthermore, to manage this effectively without interfering with other network traffic, packets associated with a specific demand are tagged with a unique identifier. Routers along the path of the demand are equipped with custom routing table entries for these tagged packets, ensuring they are forwarded correctly to the next hop. Packets not associated with a demand follow the standard routing paths established by the tool. This allows to maintain the integrity of the network and prevent interference between different demands.
 
 #### Demand 1 - H1 to H4 <!-- omit in toc -->
 
