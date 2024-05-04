@@ -187,9 +187,9 @@ The topology defines also the maximum bandwidth of each link, an important param
 
 <div style="width: 100%; display: block;">
     <p align="center">
-            <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/examples_diagrams/example_3/example_3_light.svg">
-            <source media="(prefers-color-scheme: light)" srcset="./docs/assets/examples_diagrams/example_3/example_3_dark.svg">
-            <img alt="Example 3 - Network topology" src="./docs/assets/examples_diagrams/example_3/example_3_light.svg" />
+            <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/examples_diagrams/example_3/example_3_topo_light.svg">
+            <source media="(prefers-color-scheme: light)" srcset="./docs/assets/examples_diagrams/example_3/example_3_topo_dark.svg">
+            <img alt="Example 3 - Network topology" src="./docs/assets/examples_diagrams/example_3/example_3_topo_light.svg" />
         </picture>
     </p>
 </div>
