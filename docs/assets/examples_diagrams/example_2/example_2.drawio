@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" modified="2024-05-04T13:30:22.221Z" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" etag="I9fi70URH3pxo92r1pdE" version="24.2.3" type="device">
+<mxfile host="app.diagrams.net" modified="2024-05-04T13:33:54.543Z" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" etag="dXLQjmr0pQOyz0IQNgnS" version="24.2.3" type="device">
   <diagram name="Page-1" id="ILYi0rYNNzHTElqKo2re">
-    <mxGraphModel dx="1473" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="596" dy="567" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -104,12 +104,6 @@
         </mxCell>
         <mxCell id="G48spFDgJ3UvbTq0tlOj-95" value="eth1" style="edgeLabel;resizable=0;html=1;;align=left;verticalAlign=bottom;" connectable="0" vertex="1" parent="1">
           <mxGeometry x="410.02558" y="161.97386" as="geometry" />
-        </mxCell>
-        <mxCell id="G48spFDgJ3UvbTq0tlOj-106" value="" style="image;points=[];aspect=fixed;html=1;align=center;shadow=0;dashed=0;image=img/lib/allied_telesis/computer_and_terminals/Personal_Computer_with_Server.svg;" vertex="1" parent="1">
-          <mxGeometry x="67" y="30.000000000000057" width="40" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="G48spFDgJ3UvbTq0tlOj-107" value="" style="image;points=[];aspect=fixed;html=1;align=center;shadow=0;dashed=0;image=img/lib/allied_telesis/computer_and_terminals/Personal_Computer_with_Server.svg;" vertex="1" parent="1">
-          <mxGeometry x="67" y="79.94000000000005" width="40.06" height="40.06" as="geometry" />
         </mxCell>
         <mxCell id="G48spFDgJ3UvbTq0tlOj-108" value="&lt;b&gt;H1&lt;/b&gt;" style="edgeLabel;resizable=0;html=1;;align=left;verticalAlign=bottom;" connectable="0" vertex="1" parent="1">
           <mxGeometry x="36.995579999999904" y="57.06386000000009" as="geometry" />
@@ -232,6 +226,12 @@
         </mxCell>
         <mxCell id="G48spFDgJ3UvbTq0tlOj-148" value="DOWN" style="edgeLabel;resizable=0;html=1;;align=left;verticalAlign=bottom;fontColor=#ff0000;fontStyle=1" connectable="0" vertex="1" parent="1">
           <mxGeometry x="436.50558" y="91.03386000000006" as="geometry" />
+        </mxCell>
+        <mxCell id="G48spFDgJ3UvbTq0tlOj-150" value="" style="image;points=[];aspect=fixed;html=1;align=center;shadow=0;dashed=0;image=img/lib/allied_telesis/computer_and_terminals/Personal_Computer.svg;" vertex="1" parent="1">
+          <mxGeometry x="68.96000000000001" y="77.57999999999998" width="36.08" height="48.9" as="geometry" />
+        </mxCell>
+        <mxCell id="G48spFDgJ3UvbTq0tlOj-151" value="" style="image;points=[];aspect=fixed;html=1;align=center;shadow=0;dashed=0;image=img/lib/allied_telesis/computer_and_terminals/Personal_Computer.svg;" vertex="1" parent="1">
+          <mxGeometry x="68.96000000000001" y="23.09999999999998" width="36.08" height="48.9" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
