@@ -138,7 +138,14 @@ In the directory [`examples`](./examples), you can find some YAML files that def
 
 This example defines a simple dumbbell network with two routers and two hosts. The routers are connected to each other, and each host is connected to one of the routers. This is the topology built by the Mininet-YAML tool:
 
-IMAGE!
+<div style="width: 100%; display: block;">
+    <p align="center">
+            <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/examples_diagrams/example_1/example_1_light.svg">
+            <source media="(prefers-color-scheme: light)" srcset="./docs/assets/examples_diagrams/example_1/example_1_dark.svg">
+            <img alt="Example 1 - Network topology" src="./docs/assets/examples_diagrams/example_1/example_1_light.svg" />
+        </picture>
+    </p>
+</div>
 
 > YAML configuration file available in [`examples/dumbell-network-no-cost.yaml`](./examples/dumbell-network-no-cost.yaml)
 
@@ -151,7 +158,6 @@ This example defines a more complex network with 3 routers, 4 hosts, and multipl
 IMAGE!
 
 > YAML configuration file available in [`examples/complex-network-multilink-with-costs.yaml`](./examples/complex-network-multilink-with-costs.yaml)
-
 
 ### 6.3. Example 3: Complex network with multiple routers, hosts and demands
 
