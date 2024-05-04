@@ -19,10 +19,6 @@ Mininet-YAML is a powerful tool that simplifies the creation of virtual networks
 
 Moreover, Mininet-YAML empowers users with advanced traffic engineering capabilities. They can effortlessly specify maximum transmission rates (goodput) between nodes, triggering automatic adjustments to network link capacities and routing table entries to achieve desired goodput levels. Leveraging a Mixed Integer Linear Programming (MILP) model solved by the [CBC Solver](http://www.coin-or.org/Cbc/), this tool ensures optimal network performance tailored to user specifications.
 
-## Features
-
-## Key Features
-
 ## Key Features
 
 🚀 **Rapid Network Deployment**: 
