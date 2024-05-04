@@ -49,7 +49,7 @@ def main():
             Logger().info("Creating virtual network...")
             has_demands = len(topology.get_demands()) > 0
             # Create and virtualize decoded topology
-            easy_mn, virtual_network = create_network_from_virtual_topology(topology, propagate_routes=not has_demands)
+            easy_mn, virtual_network = create_network_from_virtual_topology(topology)
 
             # Check if we need to solve the LP problem before starting the network
             if len(topology.get_demands()) > 0:

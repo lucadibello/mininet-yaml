@@ -56,16 +56,16 @@ class EasyMininet():
             ]
         
         # Prepare all the IPTable rules for the network
-        marker_lookup = dict[Demand, int]()
+        marker_to_demand = dict[int, Demand]()
+        marked_routes = dict[int, list[tuple[VirtualNetworkElement, Route]]]()
         for idx, data in enumerate(flows_data.items()):
             # First of all, for each flow we need to create a marker to identify the packets belonging to that flow
             demand, flow_data = data
-            
+
             # Create the marker rule
-            maker_id = idx + 1
-            marked_routes = dict[int, list[tuple[VirtualNetworkElement, Route]]]()
-            marker_lookup[demand] = maker_id
-            marked_routes[maker_id] = []
+            marker_id = idx + 1
+            marker_to_demand[marker_id] = demand
+            marked_routes[marker_id] = []
 
             # Find all virtual interfaces of the source and destination elements
             src_element = self._virtual_network.get(demand.source.get_name())
@@ -76,6 +76,9 @@ class EasyMininet():
             src_interfaces = src_element.get_virtual_interfaces()
             dst_interfaces = dst_element.get_virtual_interfaces()
 
+            Logger().debug(f"Creating marker rule for demand {demand.source.get_name()} -> {demand.destination.get_name()} with marker {marker_id}")
+            # for node in flow_data.flow_path:
+            #     print(f"\t * {node.lp_route.src_element.get_name()} -> {node.lp_route.route.to_element.get_name()} with capacity {node.capacity} Mbps")
             # Get all elements involved in the demands and let them know about the marker
             for path_node in flow_data.flow_path:
                 # Get the underlying virtual route
@@ -96,30 +99,37 @@ class EasyMininet():
                     )
                 
                 # Save the marker for the demand
-                marked_routes[maker_id].append((path_node.lp_route.src_element, path_node.lp_route.route))
+                marked_routes[marker_id].append((path_node.lp_route.src_element, path_node.lp_route.route))
 
                 # Set a marker for the route
-                route.set_marker(maker_id)
+                route.set_marker(marker_id)
 
                 # Execute the iptables commands
-                Logger().debug(f"Applying marker rule for demand {demand.source.get_name()} -> {demand.destination.get_name()} on path node {target_router.get_name()}")
+                Logger().debug(f"\t * setting static route on path node {target_router.get_name()} from {route.via_interface.name} to {route.dst_interface.name}")
 
                 # Get combination of source and destination interfaces
                 for src_interface, dst_interface in product(src_interfaces, dst_interfaces):
                     # Create the marker rule for the source and destination interfaces
-                    for cmd in _create_marker_rule_commands(maker_id, src_interface, dst_interface):
+                    for cmd in _create_marker_rule_commands(marker_id, src_interface, dst_interface):
                         executeCommand(src_node, f"iptables {cmd}")
+                
+                # Save table lookup rule
+                executeCommand(src_node, f"ip rule add fwmark {marker_id} table {marker_id}")
+                # Now, add an additional route to the routing table in the destination node so that the packets are forwarded to the correct interface
+                for vintf in dst_interfaces:
+                    subnet = vintf.physical_interface.get_subnet()
+                    executeCommand(
+                        src_node,
+                        f"ip route add {subnet.network_address()}/{subnet.get_prefix_length()} via {route.dst_interface.physical_interface.get_ip()} dev {route.via_interface.name} table {marker_id}",
+                    )
  
-        # We propagate the routes BUT we will mark certain routes with a specific marker
-        self._virtual_network.propagate_routes()	
-        
         # Start the network normally
-        self.start_network(marked_routes) 
-        
+        self.start_network() 
+
         # Apply traffic control rules
         self.apply_traffic_control(flows_data, settings=_default_settings)
 
-    def start_network(self, marker_lookup: dict[int, list[tuple[VirtualNetworkElement, Route]]] = dict()):
+    def start_network(self):
         """
         This method starts the virtual network and configures the IP addresses and routing tables of all elements of the network
         according to the generated virtual network topology.
@@ -239,27 +249,12 @@ class EasyMininet():
                         intf = cast(RouterNetworkInterface, intf)
                         if intf.get_cost() < best_cost:
                             best_cost = intf.get_cost()
-                            best_route = route
-                
-                # Check if we have a marker on this route
-                command_extra = ""
-
-                # Check if the route has a marker
-                for marker, routes in marker_lookup.items():
-                    # Extract the route
-                    marked_routes = [route for _, route in routes]
-                    if best_route in marked_routes:
-                        best_route.set_marker(marker)
-                        Logger().debug(f"\t [!] element {virt_element.get_name()} has a marked route to subnet {best_route.subnet.network_address()}. Applying the marker rule...")
-                        # Additional piece of code to apply the marker rule
-                        command_extra = f" table {marker}"
-                        # Save table lookup rule
-                        executeCommand(node, f"ip rule add fwmark {marker} table {marker}")
+                            best_route = route 
                 
                 # Add the route to the routing table
                 executeCommand(
                     node,
-                    f"ip route add {best_route.subnet.network_address()}/{best_route.subnet.get_prefix_length()} via {best_route.dst_interface.physical_interface.get_ip()} dev {best_route.via_interface.name}{command_extra}",
+                    f"ip route add {best_route.subnet.network_address()}/{best_route.subnet.get_prefix_length()} via {best_route.dst_interface.physical_interface.get_ip()} dev {best_route.via_interface.name}",
                 )
         
         # Mark the virtual network as started
