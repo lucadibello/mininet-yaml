@@ -200,6 +200,24 @@ Furthermore, to manage this effectively without interfering with other network t
     </p>
 </div>
 
+By running `iperf` between `h1` and `h4`, has been possible to verify the goodput achieved by the tool. The following images show the goodput achieved by the tool for each demand:
+
+<!-- Table with two images side by side -->
+<table>
+  <tr>
+    <td>
+      <img alt="Demand 1 - Source" src="./docs/assets/examples_diagrams/example_3/demand_3/demands-example-flow-bandwidth/demand_h1_h4/src.png" />
+    </td>
+    <td>
+      <img alt="Demand 1 - Destination" src="./docs/assets/examples_diagrams/example_3/demand_3/demands-example-flow-bandwidth/demand_h1_h4/dst.png" />
+    </td>
+  </tr>
+  <tr>
+	<td align="center">Source: h1</td>
+	<td align="center">Destination: h4</td>
+  </tr>
+</table>
+
 This path ensures that the goodput from `h1` to `h4` is 8 Mbps rather than the desired 10 (80% effectiveness ratio).
 
 #### Demand 2 - H4 to H2 <!-- omit in toc -->
@@ -213,6 +231,24 @@ This path ensures that the goodput from `h1` to `h4` is 8 Mbps rather than the d
 
 This path ensures that the goodput from `h4` to `h2` is 2 Mbps. The desired goodput is achieved.
 
+The following images show the goodput achieved by `iperf` for each demand:
+
+<!-- Table with two images side by side -->
+<table>
+  <tr>
+    <td>
+      <img alt="Demand 2 - Source" src="./docs/assets/examples_diagrams/example_3/demand_3/demands-example-flow-bandwidth/demand_h4_h2/src.png" />
+    </td>
+    <td>
+      <img alt="Demand 2 - Destination" src="./docs/assets/examples_diagrams/example_3/demand_3/demands-example-flow-bandwidth/demand_h4_h2/dst.png" />
+    </td>
+  </tr>
+  <tr>
+	<td align="center">Source: h4</td>
+	<td align="center">Destination: h2</td>
+  </tr>
+</table>
+
 #### Demand 3 - H3 to H4 <!-- omit in toc -->
 
 <div style="width: 100%; display: block;">
@@ -223,6 +259,33 @@ This path ensures that the goodput from `h4` to `h2` is 2 Mbps. The desired good
 </div>
 
 This path ensures that the goodput from `h3` to `h4` is 10 Mbps rather than the desired 15 (66.67% effectiveness ratio).
+
+The following images show the goodput achieved by `iperf` for each demand:
+
+<!-- Table with two images side by side -->
+<table>
+  <tr>
+    <td>
+      <img alt="Demand 3 - Source" src="./docs/assets/examples_diagrams/example_3/demand_3/demands-example-flow-bandwidth/demand_h3_h4/src.png" />
+    </td>
+    <td>
+      <img alt="Demand 3 - Destination" src="./docs/assets/examples_diagrams/example_3/demand_3/demands-example-flow-bandwidth/demand_h3_h4/dst.png" />
+    </td>
+  </tr>
+  <tr>
+	<td align="center">Source: h4</td>
+	<td align="center">Destination: h2</td>
+  </tr>
+</table>
+
+The tool has been able to archieve the optimal goodput for this network topology, considering the constraints of the problem. The following table shows the optimal goodput for each demand:
+
+| Demand | Source | Destination | Actual vs desired goodput (Mbps) | Demand Achieved (%) |
+| ------ | ------ | ----------- | -------------------------------- | ------------------- |
+| 1      | h1     | h4          | 8.0 / 10.0                       | 80.0                |
+| 2      | h4     | h2          | 2.0 / 2.0                        | 100.0               |
+| 3      | h3     | h4          | 10.0 / 15.0                      | 66.67               |
+
 
 > YAML configuration file available in [`examples/network-with-demands.yaml`](./examples/network-with-demands.yaml)
 
