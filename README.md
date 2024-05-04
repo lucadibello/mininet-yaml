@@ -19,15 +19,15 @@
 - [3. Getting started](#3-getting-started)
 - [4. Tool usage](#4-tool-usage)
 - [5. Defining Topologies](#5-defining-topologies)
-  - [5.1. Structure of the YAML file](#51-structure-of-the-yaml-file)
-    - [5.1.1. Routers](#511-routers)
-    - [5.1.2. Hosts](#512-hosts)
-    - [5.1.3. Demands (optional)](#513-demands-optional)
-  - [5.2. Functionality of Interface Costs](#52-functionality-of-interface-costs)
+	- [5.1. Structure of the YAML file](#51-structure-of-the-yaml-file)
+		- [5.1.1. Routers](#511-routers)
+		- [5.1.2. Hosts](#512-hosts)
+		- [5.1.3. Demands (optional)](#513-demands-optional)
+	- [5.2. Functionality of Interface Costs](#52-functionality-of-interface-costs)
 - [6. Examples](#6-examples)
-  - [6.1. Example 1: Simple dumbbell network](#61-example-1-simple-dumbbell-network)
-  - [6.2. Example 2: Complex network with multiple routers and hosts](#62-example-2-complex-network-with-multiple-routers-and-hosts)
-  - [6.3. Example 3: Complex network with multiple routers, hosts and demands](#63-example-3-complex-network-with-multiple-routers-hosts-and-demands)
+	- [6.1. Example 1: Simple dumbbell network](#61-example-1-simple-dumbbell-network)
+	- [6.2. Example 2: Complex network with multiple routers and hosts](#62-example-2-complex-network-with-multiple-routers-and-hosts)
+	- [6.3. Example 3: Complex network with multiple routers, hosts and demands](#63-example-3-complex-network-with-multiple-routers-hosts-and-demands)
 - [7. Development environment](#7-development-environment)
 
 ## 1. Introduction
@@ -147,9 +147,7 @@ This example defines a simple dumbbell network with two routers and six hosts. T
 
 <div style="width: 100%; display: block;">
     <p align="center">
-            <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/examples_diagrams/example_1/example_1_light.svg">
-            <source media="(prefers-color-scheme: light)" srcset="./docs/assets/examples_diagrams/example_1/example_1_dark.svg">
-            <img alt="Example 1 - Network topology" src="./docs/assets/examples_diagrams/example_1/example_1_light.svg" />
+            <img alt="Example 1 - Network topology" src="./docs/assets/examples_diagrams/example_1/example_1.svg" />
         </picture>
     </p>
 </div>
@@ -164,9 +162,7 @@ This is the resulting network topology:
 
 <div style="width: 100%; display: block;">
     <p align="center">
-            <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/examples_diagrams/example_2/example_2_light.svg">
-            <source media="(prefers-color-scheme: light)" srcset="./docs/assets/examples_diagrams/example_2/example_2_dark.svg">
-            <img alt="Example 2 - Network topology" src="./docs/assets/examples_diagrams/example_2/example_2_light.svg" />
+            <img alt="Example 2 - Network topology" src="./docs/assets/examples_diagrams/example_2/example_2.svg" />
         </picture>
     </p>
 </div>
@@ -187,12 +183,47 @@ The topology defines also the maximum bandwidth of each link, an important param
 
 <div style="width: 100%; display: block;">
     <p align="center">
-            <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/examples_diagrams/example_3/example_3_topo_light.svg">
-            <source media="(prefers-color-scheme: light)" srcset="./docs/assets/examples_diagrams/example_3/example_3_topo_dark.svg">
-            <img alt="Example 3 - Network topology" src="./docs/assets/examples_diagrams/example_3/example_3_topo_light.svg" />
+            <img alt="Example 3 - Network topology" src="./docs/assets/examples_diagrams/example_3/example_3_topo.svg" />
         </picture>
     </p>
 </div>
+
+To ensure that the demands are met, the tool will adjust the link capacities and routing tables to achieve the specified goodput levels. Each demand will have a specific route to follow in order to achieve the desired goodput. These are the routes computed by the tool for each demand:
+
+The following diagrams shows the optimal paths computed by the MILP model for each demand. Note that, due to the nature of the problem, is not always possible to have an optimal capacity assignment that satisfies fully all the demands. The developed model maximizes the minimum effective goodput between the source and destination of each demand.
+
+#### Demand 1 - H1 to H4 <!-- omit in toc -->
+
+<div style="width: 100%; display: block;">
+    <p align="center">
+            <img alt="Example 3 - Demand 1" src="./docs/assets/examples_diagrams/example_3/demand_1/example_3_demand_1.svg" />
+        </picture>
+    </p>
+</div>
+
+This path ensures that the goodput from `h1` to `h4` is 8 Mbps rather than the desired 10 (80% effectiveness ratio).
+
+#### Demand 2 - H4 to H2 <!-- omit in toc -->
+
+<div style="width: 100%; display: block;">
+	<p align="center">
+			<img alt="Example 3 - Demand 2" src="./docs/assets/examples_diagrams/example_3/demand_2/example_3_demand_2.svg" />
+		</picture>
+	</p>
+</div>
+
+This path ensures that the goodput from `h4` to `h2` is 2 Mbps. The desired goodput is achieved.
+
+#### Demand 3 - H3 to H4 <!-- omit in toc -->
+
+<div style="width: 100%; display: block;">
+	<p align="center">
+			<img alt="Example 3 - Demand 3" src="./docs/assets/examples_diagrams/example_3/demand_3/example_3_demand_3.svg" />
+		</picture>
+	</p>
+</div>
+
+This path ensures that the goodput from `h3` to `h4` is 10 Mbps rather than the desired 15 (66.67% effectiveness ratio).
 
 > YAML configuration file available in [`examples/network-with-demands.yaml`](./examples/network-with-demands.yaml)
 
