@@ -10,7 +10,7 @@
     </p>
 </div>
 
-<p align="center"><strong>🛜 Create and manage virtual networks through simple YAML configuration filess</strong></p>
+<p align="center"><strong>🛜 Create and manage virtual networks through simple YAML configuration files</strong></p>
 
 ## Table of Contents <!-- omit in toc -->
 
