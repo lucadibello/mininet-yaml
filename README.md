@@ -323,6 +323,6 @@ The tool has been able to achieve the optimal goodput for this network topology,
 
 To simplify the development process, this repository includes a preconfigured Devcontainer (available in directory [`.devcontainer`](./.devcontainer)) that includes all the necessary tools and dependencies to develop and test the tool.
 
-It follows the open specification of development containers (refer to [Development Containers - Specification](https://containers.dev/implementors/spec/), hence it is supported by Visual Studio Code and other IDEs that support this standard.
+It follows the open specification of development containers (refer to [Development Containers - Specification](https://containers.dev/implementors/spec/)), hence it is supported by Visual Studio Code and other IDEs that support this standard.
 
-> Notes for MacOS users: Unfortunately *Open vSwitch* is not supported in Docker containers on MacOS due to the lack of support for kernel modules. Therefore, to have a fully functional development environment, it is recommended to use Linux. If this is option is not feasible, you can still create a VM with Linux and use the Devcontainer in it.
+> Notes for macOS users: Unfortunately *Open vSwitch* is not supported in Docker containers on macOS due to the lack of support for kernel modules. Therefore, to have a fully functional development environment, it is recommended to use Linux. If this is option is not feasible, you can still create a VM with Linux and use the Devcontainer in it.
