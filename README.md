@@ -325,4 +325,5 @@ To simplify the development process, this repository includes a preconfigured De
 
 It follows the open specification of development containers (refer to [Development Containers - Specification](https://containers.dev/implementors/spec/)), hence it is supported by Visual Studio Code and other IDEs that support this standard.
 
-> Notes for macOS users: Unfortunately *Open vSwitch* is not supported in Docker containers on macOS due to the lack of support for kernel modules. Therefore, to have a fully functional development environment, it is recommended to use Linux. If this is option is not feasible, you can still create a VM with Linux and use the Devcontainer in it.
+> [!WARNING]
+> Unfortunately on MacOS *Open vSwitch* is not supported in Docker containers due to the lack of support for kernel modules. Therefore, to have a fully functional development environment, it is recommended to use Linux. To avoid setting up entire Linux VM from scratch by installing and compiling all the required tooling, it is always possible to use the devcontainer inside the VM. The configuation script will handle all the hard work!
