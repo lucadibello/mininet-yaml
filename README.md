@@ -196,7 +196,7 @@ This is the resulting network topology:
     </p>
 </div>
 
-From the diagram above, it is possible to see that the interface `eth1` of the router `r1` has been kept down as it is not connected to any other interface.
+From the diagram above, it is possible to see that the interface `eth1` of the router `r3` has been kept down as it is not connected to any other interface.
 
 > YAML configuration file available in [`examples/complex-network-multilink-with-costs.yaml`](./examples/complex-network-multilink-with-costs.yaml)
 
